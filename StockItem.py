@@ -8,6 +8,7 @@ class StockItem :
         self.close      = close
         self.volume     = volume
         self.transation = transation
+        self.ma5        = None
 
     def __repr__(self):
         return self.__get_str()

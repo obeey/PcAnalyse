@@ -67,8 +67,8 @@ def get_probability(outcome):
 if __name__ == '__main__':
     print("Start "+str(datetime.now()))
 
-    pattern_match   = load_data('D:\金长江网上交易\金长江网上交易财智版\T0002\export')
-    # pattern_match   = load_data('F:\project\StockPattern\data')
+    # pattern_match   = load_data('D:\金长江网上交易\金长江网上交易财智版\T0002\export')
+    pattern_match   = load_data('F:\project\StockPattern\data')
 
     print("Load  " + str(datetime.now()))
 
