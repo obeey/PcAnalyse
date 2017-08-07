@@ -4,19 +4,19 @@ from StockPatternItem import *
 
 def percentChange(start_point, current_point):
     try:
-        x = ((float(current_point) - start_point) / abs(start_point)) * 100.00
-        if x == 0.0:
-            return 0.000000001
+        x = ((current_point - start_point)*10000) // abs(start_point)
+        if x == 0:
+            return 1
         else:
             return x
     except:
-        return 0.0001
+        return 1
 
 class StockPattern:
     """StockPattern store a stock's pattern."""
 
-    PATTERN_LEN     = 60
-    OUTCOME_RANGE   = 5
+    PATTERN_LEN     = 30
+    OUTCOME_RANGE   = 10
 
     MA5_RANGE       = 5
 
@@ -38,10 +38,10 @@ class StockPattern:
             for item in stock_item_list[i:i+StockPattern.MA5_RANGE]:
                 stock_item_list[i].ma5   += self.__get_avg(item)
 
-            stock_item_list[i].ma5  /= StockPattern.MA5_RANGE
+            stock_item_list[i].ma5  //= StockPattern.MA5_RANGE
 
     def __get_avg(self, stock_item):
-        return (stock_item.open + stock_item.close) / 2
+        return (stock_item.open + stock_item.close) // 2
 
     def __get_ma5(self, stock_item):
         return stock_item.ma5
@@ -70,10 +70,12 @@ class StockPattern:
 
         if StockPattern.OUTCOME_RANGE <= start_idx:
             sp  = start_idx - StockPattern.OUTCOME_RANGE
-            outcome_range_stock = stock_item_list[sp:start_idx]
-            outcome_range   = [get_value(stock) for stock in outcome_range_stock]
-            outcome_value   = reduce(lambda x,y: x+y, outcome_range)/len(outcome_range)
+            # outcome_range_stock = stock_item_list[sp:start_idx]
+            # outcome_range   = [self.__get_avg(stock) for stock in outcome_range_stock]
+            # outcome_value   = int(reduce(lambda x,y: x+y, outcome_range)/len(outcome_range))
+            outcome_value   = stock_item_list[sp].ma5
             cur_pattern_item.futureOutCome    = percentChange(cp, outcome_value)
+            # print("outcome " + repr(cur_pattern_item.futureOutCome) + '\t' + repr(cp) + '\t' + repr(outcome_value))
 
         return cur_pattern_item
 

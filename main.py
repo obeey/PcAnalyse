@@ -6,6 +6,7 @@ from PatternMatch import  *
 import matplotlib.dates as mdates
 import numpy as np
 import os
+import sys
 
 def load_data(path):
     if os.path.isdir(path) == False:
@@ -54,21 +55,53 @@ def load_data(path):
 def get_probability(outcome):
     if 0 == len(outcome): return 50
 
-    valid   = [x for x in outcome if 1.0 < abs(x)]   # future outcome within one percent not considered.
+    valid   = [x for x in outcome if 100 < abs(x)]   # future outcome within one percent not considered.
     if 0 == len(valid): return 50
 
-    total_outcome   = reduce(lambda x,y: x + y, valid)
-    probability = int(total_outcome + 50)
+    raise_value = 0
+    raise_ctr   = 0
+    down_value  = 0
+    down_ctr    = 0
+    for v in valid:
+        if 0 < v:
+            raise_value += v
+            raise_ctr   += 1
+        else:
+            down_value  += v
+            down_ctr    += 1
+
+    probability_ctr = (raise_ctr*100)/len(valid)
+    print("Counter probability is: " + repr(probability_ctr))
+
+    probability_value   = ((raise_value/raise_ctr) + (down_value/down_ctr))/100
+    print("Value probability is: " + repr(probability_value))
+
+    probability     = probability_value + probability_ctr
+    # print(repr(total_outcome))
+
     if probability >= 100: probability = 99
     if probability <= 0:    probability = 1
 
     return probability
 
+def get_output_file_name():
+    now = datetime.now()
+    return "result_" + now.strftime("%Y-%m-%d_%H-%M") + ".txt"
+
 if __name__ == '__main__':
-    print("Start "+str(datetime.now()))
+    output_file_name    = get_output_file_name()
+    output_file         = open(output_file_name, 'w')
+
+    # print("Start "+str(datetime.now()))
+    output_file.write("Start "+str(datetime.now()))
+
+    if 1 < len(sys.argv):
+        input_file_name   = sys.argv[1]
+    else:
+        input_file_name   = 'F:\project\StockPattern\data\small'
 
     # pattern_match   = load_data('D:\金长江网上交易\金长江网上交易财智版\T0002\export')
-    pattern_match   = load_data('F:\project\StockPattern\data')
+    pattern_match   = load_data(input_file_name)
 
     print("Load  " + str(datetime.now()))
 
@@ -76,14 +109,11 @@ if __name__ == '__main__':
         # print("Match for "+stock_for_match.stockCode)
         pattern_lst = pattern_match.matched_pattern(stock_for_match.curPattern.patternLst)
 
-        if None == pattern_lst:
-            print(stock_for_match.stockCode + " 50%")
-        else:
-            outcome = []
-            for code, pattern in pattern_lst:
-                outcome.append(pattern.futureOutCome)
+        outcome = []
+        for code, pattern in pattern_lst:
+            outcome.append(pattern.futureOutCome)
 
-            probability = get_probability(outcome)
-            print(stock_for_match.stockCode + "\t" + repr(probability) + "%\t" + repr(len(outcome)))
+        probability = get_probability(outcome)
+        print(stock_for_match.stockCode + "\t" + repr(probability) + "%\t" + repr(len(outcome)))
 
     print("Complete " + str(datetime.now()))

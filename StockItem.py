@@ -2,10 +2,10 @@
 class StockItem :
     def __init__(self, date, open, high, low, close, volume, transation):
         self.date       = date
-        self.open       = open
-        self.high       = high
-        self.low        = low
-        self.close      = close
+        self.open       = (int)(open*100)
+        self.high       = (int)(high*100)
+        self.low        = (int)(low*100)
+        self.close      = (int)(close*100)
         self.volume     = volume
         self.transation = transation
         self.ma5        = None
