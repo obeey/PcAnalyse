@@ -15,7 +15,7 @@ def percentChange(start_point, current_point):
 class StockPattern:
     """StockPattern store a stock's pattern."""
 
-    PATTERN_LEN     = 30
+    PATTERN_LEN     = 60
     OUTCOME_RANGE   = 10
 
     MA5_RANGE       = 5

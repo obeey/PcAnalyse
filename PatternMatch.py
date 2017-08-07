@@ -4,7 +4,7 @@ from functools import reduce
 import matplotlib.dates as mdates
 
 class PatternMatch:
-    SIM = 65
+    SIM = 75
 
     def __init__(self):
         # stock_list's type is StockPattern.
@@ -29,6 +29,12 @@ class PatternMatch:
         else:
             return False
 
+    def get_stock(self, code):
+        for stock in self.stock_list:
+            if code == stock.stockCode:
+                return stock
+        return None
+
     def current_pattern(self, code):
         for stock in self.stock_list:
            if code == stock.stockCode:
@@ -38,6 +44,9 @@ class PatternMatch:
 
     """pattern_for_match is a pattern list. (stockCode, (date, pattern, futureOutcome))"""
     def matched_pattern(self, pattern_for_match):
+        if None == pattern_for_match:
+            return
+
         matched_pattern_list    = []
 
         for stock in self.stock_list:
@@ -49,7 +58,7 @@ class PatternMatch:
                 if self.__is_matched(pattern_for_match, pattern.patternLst):
                     matched_pattern_list.append((stock.stockCode, pattern))
                     matched_date    = mdates.num2date(pattern.date).strftime("%Y/%m/%d")
-                    print("\t" + stock.stockCode + "\t" + matched_date + "\t" + repr(pattern.futureOutCome))
+                    # print("\t" + stock.stockCode + "\t" + matched_date + "\t" + repr(pattern.futureOutCome))
 
         return matched_pattern_list
 

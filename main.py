@@ -70,10 +70,16 @@ def get_probability(outcome):
             down_value  += v
             down_ctr    += 1
 
-    probability_ctr = (raise_ctr*100)/len(valid)
+    probability_ctr = (raise_ctr*100)//len(valid)
     print("Counter probability is: " + repr(probability_ctr))
 
-    probability_value   = ((raise_value/raise_ctr) + (down_value/down_ctr))/100
+    probability_value   = 0
+    if 0 != raise_ctr:
+        probability_value   = (raise_value//raise_ctr)
+
+    if 0 != down_ctr:
+        probability_value   += (down_value//down_ctr)
+    probability_value   //= 100
     print("Value probability is: " + repr(probability_value))
 
     probability     = probability_value + probability_ctr
@@ -88,14 +94,37 @@ def get_output_file_name():
     now = datetime.now()
     return "result_" + now.strftime("%Y-%m-%d_%H-%M") + ".txt"
 
+
+def match_for_all(output_file, pattern_match):
+    for stock_for_match in pattern_match.stock_list:
+        # print("Match for "+stock_for_match.stockCode)
+        match_for_code(output_file, pattern_match, stock_for_match)
+
+
+def match_for_code(output_file, pattern_match, stock_for_match):
+    pattern_lst = pattern_match.matched_pattern(stock_for_match.curPattern.patternLst)
+    outcome = []
+    for code, pattern in pattern_lst:
+        outcome.append(pattern.futureOutCome)
+    probability = get_probability(outcome)
+    print(stock_for_match.stockCode + "\t" + repr(probability) + "%\t" + repr(len(outcome)))
+    output_file.write(stock_for_match.stockCode + "\t" + repr(probability) + "%\t" + repr(len(outcome)))
+
+
 if __name__ == '__main__':
     output_file_name    = get_output_file_name()
     output_file         = open(output_file_name, 'w')
 
-    # print("Start "+str(datetime.now()))
+    print("Start "+str(datetime.now()))
     output_file.write("Start "+str(datetime.now()))
 
-    if 1 < len(sys.argv):
+    arg_len = len(sys.argv)
+
+    stock_code  = None
+    if 2 < arg_len:
+        stock_code  = sys.argv[2]
+
+    if 1 < arg_len:
         input_file_name   = sys.argv[1]
     else:
         input_file_name   = 'F:\project\StockPattern\data\small'
@@ -104,16 +133,18 @@ if __name__ == '__main__':
     pattern_match   = load_data(input_file_name)
 
     print("Load  " + str(datetime.now()))
+    output_file.write("Load  " + str(datetime.now()))
 
-    for stock_for_match in pattern_match.stock_list:
-        # print("Match for "+stock_for_match.stockCode)
-        pattern_lst = pattern_match.matched_pattern(stock_for_match.curPattern.patternLst)
-
-        outcome = []
-        for code, pattern in pattern_lst:
-            outcome.append(pattern.futureOutCome)
-
-        probability = get_probability(outcome)
-        print(stock_for_match.stockCode + "\t" + repr(probability) + "%\t" + repr(len(outcome)))
+    if None == stock_code:
+        match_for_all(output_file, pattern_match)
+    else:
+        print("match for "+stock_code)
+        stock   = pattern_match.get_stock(stock_code)
+        if None != stock:
+            match_for_code(output_file, pattern_match, stock)
+        else:
+            print("Not found")
 
     print("Complete " + str(datetime.now()))
+    output_file.write("Complete " + str(datetime.now()))
+    output_file.close()
