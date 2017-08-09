@@ -33,6 +33,8 @@ def load_data(path):
         lines       = lines[4:-1]
         input_file.close()
 
+        lines   = lines[:-10]   # back two weeks
+
         stock_code  = f[3:-4]
         # print("Add " + repr(stock_code) + ". LEN: " + repr(len(lines)))
 
@@ -53,10 +55,10 @@ def load_data(path):
     return pattern_match
 
 def get_probability(outcome):
-    if 0 == len(outcome): return 50
+    # if 0 == len(outcome): return 50
 
     valid   = [x for x in outcome if 100 < abs(x)]   # future outcome within one percent not considered.
-    if 0 == len(valid): return 50
+    if 0 == len(valid): return 50,0,0,0
 
     raise_value = 0
     raise_ctr   = 0
@@ -82,17 +84,17 @@ def get_probability(outcome):
     probability_value   //= 100
     print("Value probability is: " + repr(probability_value))
 
-    probability     = probability_value + probability_ctr
+    # probability     = probability_value + probability_ctr
     # print(repr(total_outcome))
 
-    if probability >= 100: probability = 99
-    if probability <= 0:    probability = 1
+    # if probability >= 100: probability = 99
+    # if probability <= 0:    probability = 1
 
-    return probability
+    return probability_ctr,probability_value,max(outcome)//100,min(outcome)//100
 
 def get_output_file_name():
     now = datetime.now()
-    return "result_" + now.strftime("%Y-%m-%d_%H-%M") + ".txt"
+    return "result_" + now.strftime("%Y-%m-%d_%H-%M-%S") + ".txt"
 
 
 def match_for_all(output_file, pattern_match):
@@ -106,9 +108,13 @@ def match_for_code(output_file, pattern_match, stock_for_match):
     outcome = []
     for code, pattern in pattern_lst:
         outcome.append(pattern.futureOutCome)
-    probability = get_probability(outcome)
-    print(stock_for_match.stockCode + "\t" + repr(probability) + "%\t" + repr(len(outcome)))
-    output_file.write(stock_for_match.stockCode + "\t" + repr(probability) + "%\t" + repr(len(outcome)))
+
+    probability, avg_v, max_v, min_v = get_probability(outcome)
+
+    code_date   = mdates.num2date(stock_for_match.curPattern.date).strftime("%Y-%m-%d")
+    result  = stock_for_match.stockCode + "\t" + code_date + "\t" + repr(len(outcome)) + "\t" + repr(probability) + "%\t"  + repr(avg_v) + "%\t" + repr(max_v) + "%\t" + repr(min_v) + "%"
+    print(result)
+    output_file.write(result+'\r\n')
 
 
 if __name__ == '__main__':
