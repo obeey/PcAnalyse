@@ -16,7 +16,7 @@ class StockPattern:
     """StockPattern store a stock's pattern."""
 
     PATTERN_LEN     = 60
-    OUTCOME_RANGE   = 10
+    OUTCOME_RANGE   = 5
 
     MA5_RANGE       = 5
 
@@ -73,7 +73,7 @@ class StockPattern:
             # outcome_range_stock = stock_item_list[sp:start_idx]
             # outcome_range   = [self.__get_avg(stock) for stock in outcome_range_stock]
             # outcome_value   = int(reduce(lambda x,y: x+y, outcome_range)/len(outcome_range))
-            outcome_value   = stock_item_list[sp].ma5
+            outcome_value   = get_value(stock_item_list[sp])
             cur_pattern_item.futureOutCome    = percentChange(cp, outcome_value)
             # print("outcome " + repr(cur_pattern_item.futureOutCome) + '\t' + repr(cp) + '\t' + repr(outcome_value))
 

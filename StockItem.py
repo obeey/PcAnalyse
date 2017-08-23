@@ -6,8 +6,8 @@ class StockItem :
         self.high       = (int)(high*100)
         self.low        = (int)(low*100)
         self.close      = (int)(close*100)
-        self.volume     = volume
-        self.transation = transation
+        self.volume     = (int)(volume)
+        self.transation = (int)(transation)
         self.ma5        = None
 
     def __repr__(self):

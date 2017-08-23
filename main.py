@@ -13,7 +13,8 @@ def load_data(path):
         print("Not dir")
         return
 
-    pattern_match  = PatternMatch()
+    # pattern_match  = PatternMatch()
+    pattern_match  = {}
 
     for f in os.listdir(path):
         full_path   = os.path.join(path,f)
@@ -33,7 +34,7 @@ def load_data(path):
         lines       = lines[4:-1]
         input_file.close()
 
-        lines   = lines[:-10]   # back two weeks
+        # lines   = lines[:-10]   # back two weeks
 
         stock_code  = f[3:-4]
         # print("Add " + repr(stock_code) + ". LEN: " + repr(len(lines)))
@@ -46,12 +47,14 @@ def load_data(path):
         for i in range(len(date)):
             stock_item_list.append(StockItem(date[i], op[i], hi[i], lo[i], cl[i], vol[i], trans[i]))
 
-        stock_item_list.reverse()
+        # stock_item_list.reverse()
         # print(stock_code + repr(stock_item_list[0]))
 
-        stock_pattern   = StockPattern(stock_code, stock_item_list)
-        pattern_match.stock_list.append(stock_pattern)
+        # stock_pattern   = StockPattern(stock_code, stock_item_list)
+        # pattern_match.stock_list.append(stock_pattern)
 
+        pattern_match[stock_code]   = stock_item_list
+        # print("Add "+stock_code)
     return pattern_match
 
 def get_probability(outcome):
@@ -117,13 +120,41 @@ def match_for_code(output_file, pattern_match, stock_for_match):
     output_file.write(result+'\r\n')
 
 
+def get_volume_hi_price_lo(stock_code, history):
+    o   = history[0]
+    for i in range(1, len(history)):
+        n   = history[i]
+        if n.open >= n.close or n.close <= o.close:
+            o = n
+            continue
+
+        price_change    = percentChange(o.close, n.close)
+        volume_change   = percentChange(o.volume, n.volume)
+
+        if price_change < 300 and volume_change > 8000:
+            code_date   = mdates.num2date(n.date).strftime("%Y-%m-%d")
+            # print("\t"+code_date+"\t" + repr(price_change) +"\t\t" + repr(volume_change) +"\t\t"+ repr(n.close))
+            print("\t{}\t {:<8} {:<8} {}".format(code_date, price_change, volume_change,n.close))
+
+            # old_date = mdates.num2date(o.date).strftime("%Y-%m-%d")
+            # print("\t{}\tclose [{:<8}{:<8}] volume [{:<12}{:<12}]".format(old_date, o.close, n.close, o.volume, n.volume))
+
+        o   = n
+
+def match_volume_price(stock_list):
+    for code, data_lst in stock_list.items():
+        print(code)
+        get_volume_hi_price_lo(code, data_lst)
+
 if __name__ == '__main__':
+    """
     output_file_name    = get_output_file_name()
     output_file         = open(output_file_name, 'w')
 
     print("Start "+str(datetime.now()))
-    output_file.write("Start "+str(datetime.now()))
+    output_file.write("Start "+str(datetime.now()) + '\r\n')
 
+    """
     arg_len = len(sys.argv)
 
     stock_code  = None
@@ -138,8 +169,11 @@ if __name__ == '__main__':
     # pattern_match   = load_data('D:\金长江网上交易\金长江网上交易财智版\T0002\export')
     pattern_match   = load_data(input_file_name)
 
+    match_volume_price(pattern_match)
+
+'''
     print("Load  " + str(datetime.now()))
-    output_file.write("Load  " + str(datetime.now()))
+    output_file.write("Load  " + str(datetime.now()) + '\r\n')
 
     if None == stock_code:
         match_for_all(output_file, pattern_match)
@@ -152,5 +186,6 @@ if __name__ == '__main__':
             print("Not found")
 
     print("Complete " + str(datetime.now()))
-    output_file.write("Complete " + str(datetime.now()))
+    output_file.write("Complete " + str(datetime.now()) + '\r\n')
     output_file.close()
+'''
