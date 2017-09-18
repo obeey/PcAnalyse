@@ -97,7 +97,7 @@ def get_trend_stage(stock):
 
     # print("index {} start {} end {}".format(end_idx, stock[0], stock[end_idx]))
 
-    return end_idx, (stock[end_idx] - stock[0])/stock[0]
+    return end_idx, (stock[end_idx] - stock[0])*100/stock[0]
 
 def get_trend_list(stock):
     trend_list  = []
@@ -113,35 +113,32 @@ def get_trend_list(stock):
 
     return trend_list
 
-"""
-Category:
-    -5  : -20   >   PC
-    -4  : -15   >=  PC  > -20
-    -3  : -10   >=  PC  > -15
-    -2  : -5    >=  PC  >  -10
-    -1  : -1    >=  PC  >   -5
-    0   : -1    <   PC  < 1
-    1   : 1     <=  PC  < 5
-    2   : 5     <=  PC  < 10
-    3   : 10    <=  PC  < 15
-    4   : 15    <=  PC  < 20
-    5   : 20    <=  PC
-"""
+
+    """
+    0    : lambda pc: -20    >   pc,
+    1    : lambda pc: -15    >=  pc  >   -20,
+    2    : lambda pc: -10    >=  pc  >   -15,
+    3    : lambda pc: -5     >=  pc  >   -10,
+    4    : lambda pc: -1     >=  pc  >   -5,
+    5    : lambda pc: -1     <   pc  <   1,
+    6    : lambda pc: 1      <=  pc  <   5,
+    7    : lambda pc: 5      <=  pc  <   10,
+    8    : lambda pc: 10     <=  pc  <   15,
+    9    : lambda pc: 15     <=  pc  <   20,
+    10   : lambda pc: 20     <=  pc
+    """
+
+
 def get_trend_category(pc):
-    category_map    = {
-        -5  : lambda pc: -20    >   pc,
-        -4  : lambda pc: -15    >=  pc  >   -20,
-        -3  : lambda pc: -10    >=  pc  >   -15,
-        -2  : lambda pc: -5     >=  pc  >   -10,
-        -1  : lambda pc: -1     >=  pc  >   -5,
-        1   : lambda pc: 1      <=  pc  <   5,
-        2   : lambda pc: 5      <=  pc  <   10,
-        3   : lambda pc: 10     <=  pc  <   15,
-        4   : lambda pc: 15     <=  pc  <   20,
-        5   : lambda pc: 20     <=  pc
+    category_map = {
+        0: lambda x: -20 > x,
+        1: lambda x: -5 >= x > -20,
+        3: lambda x: -5 < x < 5,
+        4: lambda x: 5 <= x < 20,
+        5: lambda x: 20 < x
     }
 
-    for k,v in category_map.items():
+    for k, v in category_map.items():
         if v(pc):
             return k
 
