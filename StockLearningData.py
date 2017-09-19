@@ -1,5 +1,6 @@
 import StockTrend as st
-import pandas as pd
+import StockDataLoad as sdl
+# import pandas as pd
 
 SLD_HIST_PATTERN_LEN    = 30
 
@@ -43,7 +44,7 @@ def preliminary_date(stock_frame):
     stock_frame['amplitude'] = (stock_frame['high'] - stock_frame['low'])/stock_frame['low']
 
 
-def get_learning_data(stock_frame):
+def get_learning_data_from_df(stock_frame):
     stock_len   = len(stock_frame)
     data = []
     target = []
@@ -60,3 +61,29 @@ def get_learning_data(stock_frame):
         target.append(target_item)
 
     return data, target
+
+
+def get_learning_data_from_dict(stock_dict):
+    if stock_dict is None:
+        return
+
+    data = []
+    target = []
+
+    for k, v in stock_dict.items():
+        print("Processing " + k)
+
+        d, t = get_learning_data_from_df(v.drop(v.index[range(4)]))
+        if d is None or v is None:
+            continue
+
+        data.extend(d[1:])
+        target.extend(t[1:])
+
+    return data, target
+
+
+def get_learning_data_from_path(path):
+    stock_dict = sdl.load_path2dict(path)
+
+    return get_learning_data_from_dict(stock_dict)

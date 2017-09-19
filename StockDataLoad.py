@@ -29,16 +29,16 @@ def load_lines2df(lines):
     df = df.apply(pd.to_numeric, errors='coerce')
 
     load_price_ma(df, 5)
-    load_price_ma(df, 20)
-    load_price_ma(df, 60)
+    # load_price_ma(df, 20)
+    # load_price_ma(df, 60)
 
-    load_price_ema(df, 5)
-    load_price_ema(df, 20)
-    load_price_ema(df, 60)
+    # load_price_ema(df, 5)
+    # load_price_ema(df, 20)
+    # load_price_ema(df, 60)
 
     load_volumn_ma(df, 5)
 
-    load_volumn_ema(df, 5)
+    # load_volumn_ema(df, 5)
 
     return df
 
