@@ -50,7 +50,7 @@ def get_learning_data_from_df(stock_frame):
     target = []
 
     if stock_len <= SLD_HIST_PATTERN_LEN:
-        return None
+        return None, None
 
     preliminary_date(stock_frame)
 
@@ -65,7 +65,7 @@ def get_learning_data_from_df(stock_frame):
 
 def get_learning_data_from_dict(stock_dict):
     if stock_dict is None:
-        return
+        return None, None
 
     data = []
     target = []
@@ -73,12 +73,16 @@ def get_learning_data_from_dict(stock_dict):
     for k, v in stock_dict.items():
         print("Processing " + k)
 
+        if 15 >= len(v):
+            continue
+
         d, t = get_learning_data_from_df(v.drop(v.index[range(4)]))
         if d is None or v is None:
             continue
 
-        data.extend(d[1:])
-        target.extend(t[1:])
+        # The first include None element. The last elements not a complete trend.
+        data.extend(d[1:-10])
+        target.extend(t[1:-10])
 
     return data, target
 
