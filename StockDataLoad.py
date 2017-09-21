@@ -7,8 +7,8 @@ def load_ma(df, n, field, column_name):
 def load_price_ma(df, n):
     load_ma(df, n, 'close', 'ma')
 
-def load_volumn_ma(df, n):
-    load_ma(df, n, 'volumn', 'v_ma')
+def load_volume_ma(df, n):
+    load_ma(df, n, 'volume', 'v_ma')
 
 def load_ema(df, n, field, column_name):
     df[column_name+str(n)] = df[field].ewm(span=n).mean()
@@ -16,15 +16,15 @@ def load_ema(df, n, field, column_name):
 def load_price_ema(df, n):
     load_ema(df, n, 'close', 'ema')
 
-def load_volumn_ema(df, n):
-    load_ema(df, n, 'volumn', 'v_ema')
+def load_volume_ema(df, n):
+    load_ema(df, n, 'volume', 'v_ema')
 
 def load_lines2df(lines):
     stock_lst = []
     for line in lines:
         stock_lst.append(line.split())
 
-    df = pd.DataFrame(data=stock_lst, columns=['date', 'open', 'high', 'low', 'close', 'volumn', 'transation'])
+    df = pd.DataFrame(data=stock_lst, columns=['date', 'open', 'high', 'low', 'close', 'volume', 'transation'])
     df.set_index(['date'], inplace=True)
     df = df.apply(pd.to_numeric, errors='coerce')
 
@@ -36,9 +36,9 @@ def load_lines2df(lines):
     # load_price_ema(df, 20)
     # load_price_ema(df, 60)
 
-    load_volumn_ma(df, 5)
+    load_volume_ma(df, 5)
 
-    # load_volumn_ema(df, 5)
+    # load_volume_ema(df, 5)
 
     return df
 

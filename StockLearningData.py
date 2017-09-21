@@ -10,7 +10,7 @@ def get_predict_item(stock_frame, idx):
 
     for i in range(idx + 1 - SLD_HIST_PATTERN_LEN, idx + 1):
         learning_data_item.append(stock_frame.iloc[i]['close_pc'])
-        learning_data_item.append(stock_frame.iloc[i]['volumn_pc'])
+        learning_data_item.append(stock_frame.iloc[i]['volume_pc'])
         learning_data_item.append(stock_frame.iloc[i]['rise_pc'])
         learning_data_item.append(stock_frame.iloc[i]['amplitude'])
         learning_data_item.append(stock_frame.iloc[i]['ma5_pc'])
@@ -37,7 +37,7 @@ def preliminary_date(stock_frame):
     stock_open_shift = stock_frame['open'].shift()
 
     stock_frame['close_pc'] = stock_frame['close'].pct_change()
-    stock_frame['volumn_pc'] = stock_frame['volumn'].pct_change()
+    stock_frame['volume_pc'] = stock_frame['volume'].pct_change()
     stock_frame['ma5_pc'] = stock_frame['ma5'].pct_change()
     stock_frame['v_ma5_pc'] = stock_frame['v_ma5'].pct_change()
     stock_frame['rise_pc'] = (stock_frame['close'] - stock_open_shift)/stock_open_shift
@@ -70,8 +70,14 @@ def get_learning_data_from_dict(stock_dict):
     data = []
     target = []
 
+    stock_nums = len(stock_dict)
+    sn = 0
+
     for k, v in stock_dict.items():
-        print("Processing " + k)
+        sn += 1
+
+        if 0 == sn%5:
+            print("{}/{}".format(sn, stock_nums))
 
         if 15 >= len(v):
             continue
