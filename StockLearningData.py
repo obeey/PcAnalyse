@@ -9,31 +9,53 @@ def get_predict_item(stock_frame, idx):
     learning_data_item = []
 
     for i in range(idx + 1 - SLD_HIST_PATTERN_LEN, idx + 1):
-        learning_data_item.append(stock_frame.iloc[i]['close_pc'])
-        learning_data_item.append(stock_frame.iloc[i]['volume_pc'])
-        learning_data_item.append(stock_frame.iloc[i]['rise_pc'])
-        learning_data_item.append(stock_frame.iloc[i]['amplitude'])
-        learning_data_item.append(stock_frame.iloc[i]['ma5_pc'])
-        learning_data_item.append(stock_frame.iloc[i]['v_ma5_pc'])
+        sf = stock_frame.iloc[i]
+        learning_data_item.append(sf['close_pc'])
+        learning_data_item.append(sf['volume_pc'])
+        learning_data_item.append(sf['rise_pc'])
+        learning_data_item.append(sf['amplitude'])
+        learning_data_item.append(sf['ma5_pc'])
+        learning_data_item.append(sf['v_ma5_pc'])
 
     return learning_data_item
 
 
-def get_learning_item(stock_frame, idx):
+def get_learning_category(stock_frame, idx_start, idx_end):
+    start = stock_frame['close'][idx_start]
+    end = stock_frame['close'][idx_end]
+
+    pc = (end - start)*100/start
+    category = st.get_trend_category(pc)
+    return category
+
+
+def get_idx_end_from_st(stock_frame, idx):
+    trend_length = st.get_trend_stage(stock_frame['ma5_pc'][idx:])
+    idx_end = idx + trend_length - 1
+
+    return idx_end
+
+
+def get_learning_item_from_idx(stock_frame, idx_start, idx_end):
     learning_target_item = []
 
-    learning_data_item = get_predict_item(stock_frame, idx)
+    learning_data_item = get_predict_item(stock_frame, idx_start)
 
-    idx, pc = st.get_trend_stage(stock_frame['ma5'][idx:])
-    category = st.get_trend_category(pc)
+    category = get_learning_category(stock_frame, idx_start, idx_end)
 
-    # print("{} {} {}".format(idx, pc, category))
+    # print("{} {} {}".format(idx_delta, pc, category))
     learning_target_item.append(category)
 
     return learning_data_item, learning_target_item
 
 
-def preliminary_date(stock_frame):
+def get_learning_item(stock_frame, idx):
+    idx_end = get_idx_end_from_st(stock_frame, idx)
+
+    return get_learning_item_from_idx(stock_frame, idx, idx_end)
+
+
+def preliminary_data(stock_frame):
     stock_open_shift = stock_frame['open'].shift()
 
     stock_frame['close_pc'] = stock_frame['close'].pct_change()
@@ -49,14 +71,19 @@ def get_learning_data_from_df(stock_frame):
     data = []
     target = []
 
-    if stock_len <= SLD_HIST_PATTERN_LEN:
+    if stock_len <= SLD_HIST_PATTERN_LEN+1:
         return None, None
 
-    preliminary_date(stock_frame)
+    preliminary_data(stock_frame)
 
+    stock_frame = stock_frame.drop(stock_frame.index[0])
+
+    trend_end = 0
     # i is the current index for predict
-    for i in range(SLD_HIST_PATTERN_LEN - 1, stock_len - 2):
-        data_item, target_item = get_learning_item(stock_frame, i)
+    for i in range(SLD_HIST_PATTERN_LEN - 1, stock_len - 3):
+        if i >= trend_end:
+            trend_end = get_idx_end_from_st(stock_frame, i)
+        data_item, target_item = get_learning_item_from_idx(stock_frame, i, trend_end)
         data.append(data_item)
         target.append(target_item)
 
@@ -76,7 +103,7 @@ def get_learning_data_from_dict(stock_dict):
     for k, v in stock_dict.items():
         sn += 1
 
-        if 0 == sn%5:
+        if 0 == sn % 10:
             print("{}/{}".format(sn, stock_nums))
 
         if 15 >= len(v):

@@ -77,12 +77,12 @@ def __stock_trend_end(cargo):
 input:
     stock : Series. It's MA5 for stock normally.
 output:
-    The end index and the change percent of the stock
+    The trend's length. The days for this trend.
 '''
 
 
-def get_trend_stage(stock):
-    percent_change = stock.pct_change()
+def get_trend_stage(stock_ma5_pc):
+    # percent_change = stock.pct_change()
 
     m = sm.StateMachine()
     m.add_state('START', __stock_trend_start__)
@@ -91,23 +91,24 @@ def get_trend_stage(stock):
     m.add_state('END', __stock_trend_end, end_state=1)
 
     m.set_start('START')
-    cargo = m.run([1, percent_change])
+    cargo = m.run([1, stock_ma5_pc])
 
-    end_idx = cargo[0]
+    trend_length = cargo[0]
 
     # print("index {} start {} end {}".format(end_idx, stock[0], stock[end_idx]))
 
-    return end_idx, (stock[end_idx] - stock[0])*100/stock[0]
+    return trend_length
 
-def get_trend_list(stock):
+
+def get_trend_list(stock_ma5_pc):
     trend_list  = []
     idx         = 0
 
-    while idx < len(stock)- 1:
-        idx_delta, pc = get_trend_stage(stock[idx:])
+    while idx < len(stock_ma5_pc) - 1:
+        idx_delta = get_trend_stage(stock_ma5_pc[idx:])
 
-        print(stock.index[idx] + " index {} delta {} PC {}%".format(idx, idx_delta, pc*100))
-        trend_list.append((idx, pc))
+        print(stock_ma5_pc.index[idx] + " index {} delta {} PC {}%".format(idx, idx_delta, pc * 100))
+        trend_list.append(idx)
 
         idx += idx_delta
 
@@ -132,9 +133,9 @@ def get_trend_list(stock):
 def get_trend_category(pc):
     category_map = {
         0: lambda x: -20 > x,
-        1: lambda x: -5 >= x > -20,
-        3: lambda x: -5 < x < 5,
-        4: lambda x: 5 <= x < 20,
+        1: lambda x: -3 >= x > -20,
+        3: lambda x: -3 < x < 3,
+        4: lambda x: 3 <= x < 20,
         5: lambda x: 20 < x
     }
 
