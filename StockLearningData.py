@@ -1,3 +1,4 @@
+import datetime
 import StockTrend as st
 import StockDataLoad as sdl
 # import pandas as pd
@@ -90,7 +91,7 @@ def get_learning_data_from_df(stock_frame):
     return data, target
 
 
-def get_learning_data_from_dict(stock_dict):
+def get_learning_data_from_dict_idx(stock_dict, idx):
     if stock_dict is None:
         return None, None
 
@@ -103,13 +104,104 @@ def get_learning_data_from_dict(stock_dict):
     for k, v in stock_dict.items():
         sn += 1
 
-        if 0 == sn % 10:
+        if 0 == sn % 100:
             print("{}/{}".format(sn, stock_nums))
 
         if 15 >= len(v):
             continue
 
-        d, t = get_learning_data_from_df(v.drop(v.index[range(4)]))
+        d, t = get_learning_data_from_df(v.drop(v.index[range(idx)]))
+        if d is None or v is None:
+            continue
+
+        # The first include None element. The last elements not a complete trend.
+        data.extend(d[1:-10])
+        target.extend(t[1:-10])
+
+    return data, target
+
+
+
+def get_learning_data_from_dict(stock_dict):
+    return get_learning_data_from_dict_idx(stock_dict, 4)
+
+
+def get_idx_from_df(df, date):
+    if df is None:
+        return 0
+
+    idx_date = datetime.datetime.strptime(date,  "%Y/%m/%d")
+
+    start_date = datetime.datetime.strptime(df.index[0], "%Y/%m/%d")
+    end_date = datetime.datetime.strptime(df.index[len(df) - 1], "%Y/%m/%d")
+
+    if idx_date <= start_date:
+        return 0
+
+    if idx_date >= end_date:
+        return len(df) - 1
+
+    one_day = datetime.timedelta(1)
+
+    while idx_date < end_date:
+        try:
+            idx = df.index.get_loc(date)
+            return idx
+        except KeyError:
+            idx_date = idx_date + one_day
+            date = idx_date.strftime("%Y/%m/%d")
+            continue
+
+    return len(df) - 1
+
+
+def reshape_df(df, start_date, end_date=None):
+    length = len(df)
+    idx_start = 0
+
+    if start_date is not None:
+        idx_start = get_idx_from_df(df, start_date)
+
+        if idx_start > 0:
+            length = length - idx_start - 1
+            if 15 >= length:
+                return df
+
+    if end_date is not None:
+        idx_end = get_idx_from_df(df, end_date)
+        if idx_end < len(df)-1:
+            if 15 >= length - (len(df)-idx_end-1):
+                return df
+            else:
+                df = df.drop(df.index[range(idx_end, len(df))])
+
+    if start_date is not None and idx_start > 0:
+        df = df.drop(df.index[range(idx_start)])
+
+    return df
+
+
+def get_learning_data_from_dict_date(stock_dict, start_date, end_date=None):
+    if stock_dict is None:
+        return None, None
+
+    data = []
+    target = []
+
+    stock_nums = len(stock_dict)
+    sn = 0
+
+    for k, v in stock_dict.items():
+        sn += 1
+
+        if 0 == sn % 100:
+            print("{}/{}".format(sn, stock_nums))
+
+        if 15 >= len(v):
+            continue
+
+        v = reshape_df(v, start_date, end_date)
+        d, t = get_learning_data_from_df(v)
         if d is None or v is None:
             continue
 
