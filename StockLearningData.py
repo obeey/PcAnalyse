@@ -1,4 +1,5 @@
 import datetime
+import numpy as np
 import StockTrend as st
 import StockDataLoad as sdl
 # import pandas as pd
@@ -22,8 +23,8 @@ def get_predict_item(stock_frame, idx):
 
 
 def get_learning_category(stock_frame, idx_start, idx_end):
-    start = stock_frame['close'][idx_start]
-    end = stock_frame['close'][idx_end]
+    start = stock_frame['ma5'][idx_start]
+    end = stock_frame['ma5'][idx_end]
 
     pc = (end - start)*100/start
     category = st.get_trend_category(pc)
@@ -38,16 +39,18 @@ def get_idx_end_from_st(stock_frame, idx):
 
 
 def get_learning_item_from_idx(stock_frame, idx_start, idx_end):
-    learning_target_item = []
+    # learning_target_item = []
 
     learning_data_item = get_predict_item(stock_frame, idx_start)
+    if np.any(np.isnan(learning_data_item)) or np.any(np.isinf(learning_data_item)):
+        return None, None
 
     category = get_learning_category(stock_frame, idx_start, idx_end)
 
     # print("{} {} {}".format(idx_delta, pc, category))
-    learning_target_item.append(category)
+    # learning_target_item.append(category)
 
-    return learning_data_item, learning_target_item
+    return learning_data_item, category
 
 
 def get_learning_item(stock_frame, idx):
@@ -85,6 +88,9 @@ def get_learning_data_from_df(stock_frame):
         if i >= trend_end:
             trend_end = get_idx_end_from_st(stock_frame, i)
         data_item, target_item = get_learning_item_from_idx(stock_frame, i, trend_end)
+        if data_item is None or target_item is None:
+            continue
+
         data.append(data_item)
         target.append(target_item)
 
@@ -197,7 +203,7 @@ def get_learning_data_from_dict_date(stock_dict, start_date, end_date=None):
         if 0 == sn % 100:
             print("{}/{}".format(sn, stock_nums))
 
-        if 15 >= len(v):
+        if 45 >= len(v):
             continue
 
         v = reshape_df(v, start_date, end_date)

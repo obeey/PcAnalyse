@@ -1,4 +1,5 @@
 import os
+import datetime
 import pandas as pd
 
 def load_ma(df, n, field, column_name):
@@ -19,10 +20,28 @@ def load_price_ema(df, n):
 def load_volume_ema(df, n):
     load_ema(df, n, 'volume', 'v_ema')
 
-def load_lines2df(lines):
+
+def load_lines2df(lines, date_str_start=None, date_str_end=None):
     stock_lst = []
+    start = None
+    end = None
+
+    if date_str_start is not None:
+        start = datetime.datetime.strptime(date_str_start, '%Y/%m/%d')
+
+    if date_str_end is not None:
+        end = datetime.datetime.strptime(date_str_end, '%Y/%m/%d')
+
     for line in lines:
-        stock_lst.append(line.split())
+        field_list = line.split()
+
+        if start is not None and start > datetime.datetime.strptime(field_list[0], '%Y/%m/%d'):
+            continue
+
+        if end is not None and end <= datetime.datetime.strptime(field_list[0], '%Y/%m/%d'):
+            break
+
+        stock_lst.append(field_list)
 
     df = pd.DataFrame(data=stock_lst, columns=['date', 'open', 'high', 'low', 'close', 'volume', 'transation'])
     df.set_index(['date'], inplace=True)
@@ -42,6 +61,7 @@ def load_lines2df(lines):
 
     return df
 
+
 def load_file2lines(file_path):
     in_file = open(file_path)
     lines   = in_file.readlines()
@@ -49,11 +69,13 @@ def load_file2lines(file_path):
 
     return lines[2:-1]
 
-def load_file2df(file_path):
-    return load_lines2df(load_file2lines(file_path))
 
-def load_path2dict(path):
-    if os.path.isdir(path) == False:
+def load_file2df(file_path, date_str_start=None, date_str_end=None):
+    return load_lines2df(load_file2lines(file_path), date_str_start, date_str_end)
+
+
+def load_path2dict(path, date_str_start=None, date_str_end=None):
+    if not os.path.isdir(path):
         print("Not dir")
         return
 
@@ -69,6 +91,6 @@ def load_path2dict(path):
         # print(f)
 
         stock_code  = f[3:-4]
-        stock_dict[stock_code]   = load_file2df(full_path)
+        stock_dict[stock_code]   = load_file2df(full_path, date_str_start, date_str_end)
         # print("Add "+stock_code)
     return stock_dict
