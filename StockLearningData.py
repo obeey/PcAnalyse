@@ -82,12 +82,17 @@ def get_learning_data_from_df(stock_frame):
 
     stock_frame = stock_frame.drop(stock_frame.index[0])
 
-    trend_end = 0
+    # trend_end = 0
     # i is the current index for predict
-    for i in range(SLD_HIST_PATTERN_LEN - 1, stock_len - 3):
-        if i >= trend_end:
-            trend_end = get_idx_end_from_st(stock_frame, i)
+    # for i in range(SLD_HIST_PATTERN_LEN - 1, stock_len - 3):
+    #     if i >= trend_end:
+    #         trend_end = get_idx_end_from_st(stock_frame, i)
+    i = SLD_HIST_PATTERN_LEN - 1
+    while i < stock_len - 3:
+        # print(stock_frame.index[i])
+        trend_end = get_idx_end_from_st(stock_frame, i)
         data_item, target_item = get_learning_item_from_idx(stock_frame, i, trend_end)
+        i = trend_end
         if data_item is None or target_item is None:
             continue
 
