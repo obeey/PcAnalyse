@@ -1,3 +1,4 @@
+import os
 import datetime
 import numpy as np
 import StockTrend as st
@@ -27,7 +28,15 @@ def get_learning_category(stock_frame, idx_start, idx_end):
     end = stock_frame['ma5'][idx_end]
 
     pc = (end - start)*100/start
-    category = st.get_trend_category(pc)
+    # category = st.get_trend_category(pc)
+    # return category
+    category = 2
+    if pc <= -10.0:
+        category = 0
+    if pc >= 10.0:
+        category = 1
+
+    # print("{} {} : {} {}".format(stock_frame.index[idx_start], stock_frame.index[idx_end], pc, category))
     return category
 
 
@@ -41,11 +50,13 @@ def get_idx_end_from_st(stock_frame, idx):
 def get_learning_item_from_idx(stock_frame, idx_start, idx_end):
     # learning_target_item = []
 
+    category = get_learning_category(stock_frame, idx_start, idx_end)
+    if 0 != category and 1 != category:
+        return None, None
+
     learning_data_item = get_predict_item(stock_frame, idx_start)
     if np.any(np.isnan(learning_data_item)) or np.any(np.isinf(learning_data_item)):
         return None, None
-
-    category = get_learning_category(stock_frame, idx_start, idx_end)
 
     # print("{} {} {}".format(idx_delta, pc, category))
     # learning_target_item.append(category)
@@ -132,7 +143,6 @@ def get_learning_data_from_dict_idx(stock_dict, idx):
     return data, target
 
 
-
 def get_learning_data_from_dict(stock_dict):
     return get_learning_data_from_dict_idx(stock_dict, 4)
 
@@ -208,12 +218,12 @@ def get_learning_data_from_dict_date(stock_dict, start_date, end_date=None):
         if 0 == sn % 100:
             print("{}/{}".format(sn, stock_nums))
 
-        if 45 >= len(v):
+        if SLD_HIST_PATTERN_LEN + 15 >= len(v):
             continue
 
         v = reshape_df(v, start_date, end_date)
         d, t = get_learning_data_from_df(v)
-        if d is None or v is None:
+        if d is None or t is None:
             continue
 
         # The first include None element. The last elements not a complete trend.
@@ -223,7 +233,37 @@ def get_learning_data_from_dict_date(stock_dict, start_date, end_date=None):
     return data, target
 
 
-def get_learning_data_from_path(path):
-    stock_dict = sdl.load_path2dict(path)
+def get_learning_data_from_path(path, start_date=None, end_date=None):
+    # stock_dict = sdl.load_path2dict(path)
+    #
+    # return get_learning_data_from_dict(stock_dict)
 
-    return get_learning_data_from_dict(stock_dict)
+    if not os.path.isdir(path):
+        print("Not dir")
+        return
+
+    data = []
+    target = []
+    for f in os.listdir(path):
+        if ('SH#' != f[:3]) and ('SZ#' != f[:3]):
+            continue
+
+        full_path   = os.path.join(path, f)
+        df = sdl.load_file2df(full_path, start_date, end_date)
+
+        if SLD_HIST_PATTERN_LEN + 15 >= len(df):
+            continue
+
+        print(f)
+
+        d, t = get_learning_data_from_df(df)
+        if d is None or t is None:
+            continue
+
+        print("{} {}".format(len(data), len(target)))
+
+        # The first include None element. The last elements not a complete trend.
+        data.extend(d[1:-10])
+        target.extend(t[1:-10])
+
+    return data, target
