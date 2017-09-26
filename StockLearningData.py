@@ -6,6 +6,7 @@ import StockDataLoad as sdl
 # import pandas as pd
 
 SLD_HIST_PATTERN_LEN    = 30
+TREND_LEN_REV = 10
 
 
 def get_predict_item(stock_frame, idx):
@@ -42,7 +43,7 @@ def get_learning_category(stock_frame, idx_start, idx_end):
 
 def get_idx_end_from_st(stock_frame, idx):
     trend_length = st.get_trend_stage(stock_frame['ma5_pc'][idx:])
-    idx_end = idx + trend_length - 1
+    idx_end = idx + trend_length
 
     return idx_end
 
@@ -51,8 +52,8 @@ def get_learning_item_from_idx(stock_frame, idx_start, idx_end):
     # learning_target_item = []
 
     category = get_learning_category(stock_frame, idx_start, idx_end)
-    if 0 != category and 1 != category:
-        return None, None
+    # if 0 != category and 1 != category:
+    #     return None, None
 
     learning_data_item = get_predict_item(stock_frame, idx_start)
     if np.any(np.isnan(learning_data_item)) or np.any(np.isinf(learning_data_item)):
@@ -81,28 +82,77 @@ def preliminary_data(stock_frame):
     stock_frame['amplitude'] = (stock_frame['high'] - stock_frame['low'])/stock_frame['low']
 
 
-def get_learning_data_from_df(stock_frame):
+def get_predict_data_from_df(stock_frame, start_date=None, end_date=None):
     stock_len   = len(stock_frame)
     data = []
-    target = []
 
-    if stock_len <= SLD_HIST_PATTERN_LEN+1:
+    if stock_len <= SLD_HIST_PATTERN_LEN+TREND_LEN_REV+1:
         return None, None
 
     preliminary_data(stock_frame)
 
     stock_frame = stock_frame.drop(stock_frame.index[0])
 
+    if start_date is not None or end_date is not None:
+        df = reshape_df(stock_frame, start_date, end_date)
+    else:
+        df = stock_frame
+    stock_len = len(df)
+
+    if stock_len <= SLD_HIST_PATTERN_LEN+TREND_LEN_REV:
+        return None, None
+
     # trend_end = 0
     # i is the current index for predict
     # for i in range(SLD_HIST_PATTERN_LEN - 1, stock_len - 3):
     #     if i >= trend_end:
-    #         trend_end = get_idx_end_from_st(stock_frame, i)
+    #         trend_end = get_idx_end_from_st(df, i)
     i = SLD_HIST_PATTERN_LEN - 1
-    while i < stock_len - 3:
-        # print(stock_frame.index[i])
-        trend_end = get_idx_end_from_st(stock_frame, i)
-        data_item, target_item = get_learning_item_from_idx(stock_frame, i, trend_end)
+    # print("{} {}".format(df.index[i], df.index[stock_len-1]))
+    while i < stock_len:
+        # print(df.index[i])
+        data_item = get_predict_item(df, i)
+        i += 1
+        if data_item is None:
+            continue
+
+        data.append(data_item)
+
+    return data
+
+
+def get_learning_data_from_df(stock_frame, start_date=None, end_date=None):
+    stock_len   = len(stock_frame)
+    data = []
+    target = []
+
+    if stock_len <= SLD_HIST_PATTERN_LEN+TREND_LEN_REV+1:
+        return None, None
+
+    preliminary_data(stock_frame)
+
+    stock_frame = stock_frame.drop(stock_frame.index[0])
+
+    if start_date is not None or end_date is not None:
+        df = reshape_df(stock_frame, start_date, end_date)
+    else:
+        df = stock_frame
+    stock_len = len(df)
+
+    if stock_len <= SLD_HIST_PATTERN_LEN+TREND_LEN_REV:
+        return None, None
+
+    # trend_end = 0
+    # i is the current index for predict
+    # for i in range(SLD_HIST_PATTERN_LEN - 1, stock_len - 3):
+    #     if i >= trend_end:
+    #         trend_end = get_idx_end_from_st(df, i)
+    i = SLD_HIST_PATTERN_LEN - 1
+    # print("{} {}".format(df.index[i], df.index[stock_len-1]))
+    while i < stock_len - 1:
+        # print(df.index[i])
+        trend_end = get_idx_end_from_st(df, i)
+        data_item, target_item = get_learning_item_from_idx(df, i, trend_end)
         i = trend_end
         if data_item is None or target_item is None:
             continue
@@ -110,7 +160,7 @@ def get_learning_data_from_df(stock_frame):
         data.append(data_item)
         target.append(target_item)
 
-    return data, target
+    return data[:-TREND_LEN_REV], target[:-TREND_LEN_REV]
 
 
 def get_learning_data_from_dict_idx(stock_dict, idx):
@@ -181,17 +231,17 @@ def reshape_df(df, start_date, end_date=None):
     idx_start = 0
 
     if start_date is not None:
-        idx_start = get_idx_from_df(df, start_date)
+        idx_start = get_idx_from_df(df, start_date) - SLD_HIST_PATTERN_LEN + 1
 
         if idx_start > 0:
             length = length - idx_start - 1
-            if 15 >= length:
+            if SLD_HIST_PATTERN_LEN + TREND_LEN_REV >= length:
                 return df
 
     if end_date is not None:
         idx_end = get_idx_from_df(df, end_date)
         if idx_end < len(df)-1:
-            if 15 >= length - (len(df)-idx_end-1):
+            if SLD_HIST_PATTERN_LEN + TREND_LEN_REV >= length - (len(df)-idx_end-1):
                 return df
             else:
                 df = df.drop(df.index[range(idx_end, len(df))])
@@ -254,16 +304,16 @@ def get_learning_data_from_path(path, start_date=None, end_date=None):
         if SLD_HIST_PATTERN_LEN + 15 >= len(df):
             continue
 
-        print(f)
+        # print(f)
 
         d, t = get_learning_data_from_df(df)
         if d is None or t is None:
             continue
 
-        print("{} {}".format(len(data), len(target)))
+        # print("{} {}".format(len(data), len(target)))
 
         # The first include None element. The last elements not a complete trend.
-        data.extend(d[1:-10])
-        target.extend(t[1:-10])
+        data.extend(d)
+        target.extend(t)
 
     return data, target
