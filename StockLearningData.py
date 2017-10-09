@@ -24,24 +24,29 @@ def get_predict_item(stock_frame, idx):
     return learning_data_item
 
 
-def get_learning_category(stock_frame, idx_start, idx_end):
+def get_learning_range_pc(stock_frame, idx_start, idx_end):
     start = stock_frame['ma5'][idx_start]
     end = stock_frame['ma5'][idx_end]
 
     pc = (end - start)*100/start
+    return pc
+
+
+def get_learning_category(stock_frame, idx_start, idx_end):
+    pc = get_learning_range_pc(stock_frame, idx_start, idx_end)
     # category = st.get_trend_category(pc)
     # return category
     category = 2
-    if pc <= -10.0:
+    if pc <= -20.0:
         category = 0
-    if pc >= 10.0:
+    if pc >= 20.0:
         category = 1
 
     # print("{} {} : {} {}".format(stock_frame.index[idx_start], stock_frame.index[idx_end], pc, category))
     return category
 
 
-def get_idx_end_from_st(stock_frame, idx):
+def get_idx_trend_end_from_st(stock_frame, idx):
     trend_length = st.get_trend_stage(stock_frame['ma5_pc'][idx:])
     idx_end = idx + trend_length
 
@@ -52,8 +57,8 @@ def get_learning_item_from_idx(stock_frame, idx_start, idx_end):
     # learning_target_item = []
 
     category = get_learning_category(stock_frame, idx_start, idx_end)
-    # if 0 != category and 1 != category:
-    #     return None, None
+    if 0 != category and 1 != category:
+        return None, None
 
     learning_data_item = get_predict_item(stock_frame, idx_start)
     if np.any(np.isnan(learning_data_item)) or np.any(np.isinf(learning_data_item)):
@@ -66,7 +71,7 @@ def get_learning_item_from_idx(stock_frame, idx_start, idx_end):
 
 
 def get_learning_item(stock_frame, idx):
-    idx_end = get_idx_end_from_st(stock_frame, idx)
+    idx_end = get_idx_trend_end_from_st(stock_frame, idx)
 
     return get_learning_item_from_idx(stock_frame, idx, idx_end)
 
@@ -86,8 +91,8 @@ def get_predict_data_from_df(stock_frame, start_date=None, end_date=None):
     stock_len   = len(stock_frame)
     data = []
 
-    if stock_len <= SLD_HIST_PATTERN_LEN+TREND_LEN_REV+1:
-        return None, None
+    if stock_len <= SLD_HIST_PATTERN_LEN+1:
+        return None
 
     preliminary_data(stock_frame)
 
@@ -99,8 +104,8 @@ def get_predict_data_from_df(stock_frame, start_date=None, end_date=None):
         df = stock_frame
     stock_len = len(df)
 
-    if stock_len <= SLD_HIST_PATTERN_LEN+TREND_LEN_REV:
-        return None, None
+    if stock_len <= SLD_HIST_PATTERN_LEN:
+        return None
 
     # trend_end = 0
     # i is the current index for predict
@@ -151,7 +156,7 @@ def get_learning_data_from_df(stock_frame, start_date=None, end_date=None):
     # print("{} {}".format(df.index[i], df.index[stock_len-1]))
     while i < stock_len - 1:
         # print(df.index[i])
-        trend_end = get_idx_end_from_st(df, i)
+        trend_end = get_idx_trend_end_from_st(df, i)
         data_item, target_item = get_learning_item_from_idx(df, i, trend_end)
         i = trend_end
         if data_item is None or target_item is None:
@@ -299,6 +304,19 @@ def get_learning_data_from_path(path, start_date=None, end_date=None):
             continue
 
         full_path   = os.path.join(path, f)
+        if start_date is not None:
+            sd = datetime.datetime.strptime(start_date, '%Y/%m/%d')
+            one_day = datetime.timedelta(1)
+            sd = sd - one_day
+            if sd.isoweekday() == 7:
+                sd -= one_day
+                sd -= one_day
+
+            if sd.isoweekday() == 6:
+                sd -= one_day
+
+            start_date = sd.strftime('%Y/%m/%d')
+
         df = sdl.load_file2df(full_path, start_date, end_date)
 
         if SLD_HIST_PATTERN_LEN + 15 >= len(df):
