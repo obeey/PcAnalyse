@@ -21,6 +21,17 @@ def load_volume_ema(df, n):
     load_ema(df, n, 'volume', 'v_ema')
 
 
+def load_preliminary_data(stock_frame):
+    stock_open_shift = stock_frame['open'].shift()
+
+    stock_frame['close_pc'] = stock_frame['close'].pct_change()
+    stock_frame['volume_pc'] = stock_frame['volume'].pct_change()
+    stock_frame['ma5_pc'] = stock_frame['ma5'].pct_change()
+    stock_frame['v_ma5_pc'] = stock_frame['v_ma5'].pct_change()
+    stock_frame['rise_pc'] = (stock_frame['close'] - stock_open_shift)/stock_open_shift
+    stock_frame['amplitude'] = (stock_frame['high'] - stock_frame['low'])/stock_frame['low']
+
+
 def load_lines2df(lines, date_str_start=None, date_str_end=None):
     stock_lst = []
     start = None
@@ -58,6 +69,8 @@ def load_lines2df(lines, date_str_start=None, date_str_end=None):
     load_volume_ma(df, 5)
 
     # load_volume_ema(df, 5)
+
+    load_preliminary_data(df)
 
     return df
 

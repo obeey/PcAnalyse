@@ -155,6 +155,7 @@ if __name__ == '__main__':
     output_file.write("Start "+str(datetime.now()) + '\r\n')
 
     """
+    '''
     arg_len = len(sys.argv)
 
     stock_code  = None
@@ -170,6 +171,7 @@ if __name__ == '__main__':
     pattern_match   = load_data(input_file_name)
 
     match_volume_price(pattern_match)
+    '''
 
 '''
     print("Load  " + str(datetime.now()))
