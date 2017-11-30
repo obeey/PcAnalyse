@@ -13,7 +13,8 @@ def get_predict_item(stock_frame, idx):
     learning_data_item = []
 
     for i in range(idx + 1 - SLD_HIST_PATTERN_LEN, idx + 1):
-        sf = stock_frame.iat[i]
+        sf = stock_frame.iloc[i]
+
         learning_data_item.append(sf['close_pc'])
         learning_data_item.append(sf['volume_pc'])
         learning_data_item.append(sf['rise_pc'])
