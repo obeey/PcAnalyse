@@ -16,7 +16,7 @@ def backtest_sigle_stock(stock_df):
 
 def backtest_stock_show(stock_lst, date_str):
     COLS = 5
-    RANGE = 10
+    RANGE = 100
     stock_num = len(stock_lst)
     if stock_num == 0:
         return
@@ -80,7 +80,7 @@ def backtest_all_stock_specify_date(stock_dict, date_str):
         # print(idx)
         if ss.strategy_crossstar_low(v, idx):
             stock_lst.append((c, v, idx))
-            print("\t"+c)
+            # print("\t"+c)
 
     # backtest_stock_show(stock_lst, date_str)
     return stock_lst

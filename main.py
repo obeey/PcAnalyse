@@ -146,7 +146,31 @@ def match_volume_price(stock_list):
         print(code)
         get_volume_hi_price_lo(code, data_lst)
 
+import tensorflow as tf
+import StockDataLoad as sdl
+import StockPredict as sp
+import StockBackTest as sbt
+
 if __name__ == '__main__':
+    tf.logging.set_verbosity(tf.logging.ERROR)
+    feature_columns = [tf.feature_column.numeric_column("x", shape=[180])]
+    classifier_1024_512_256 = tf.estimator.DNNClassifier(feature_columns=feature_columns,
+                                                     hidden_units=[1024, 512, 256],
+                                                     n_classes=2,
+                                                     model_dir="f:/Project/PcAnalyse/model_hu_1024_512_256_nc_2_trend_20")
+    
+    stock_dict_predict = sdl.load_path2dict('f:/StockData/real', '2017/11/27')
+    sp.predict_stock_today(classifier_1024_512_256, stock_dict_predict)
+
+    date_str = datetime.today().strftime('%Y/%m/%d')
+    print(date_str)
+    stock_lst = sbt.backtest_all_stock_specify_date(stock_dict_predict, date_str)
+    
+    print(stock_lst)
+    # stock_basic_info = stock_info_get()
+    # stock_lst = stock_filter(stock_lst, stock_basic_info)
+    sbt.backtest_stock_show(stock_lst, date_str)
+
     """
     output_file_name    = get_output_file_name()
     output_file         = open(output_file_name, 'w')
