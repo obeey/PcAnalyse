@@ -80,7 +80,7 @@ def backtest_all_stock_specify_date(stock_dict, date_str):
         # print(idx)
         if ss.strategy_crossstar_low(v, idx):
             stock_lst.append((c, v, idx))
-            # print("\t"+c)
+            print("\t"+c)
 
     # backtest_stock_show(stock_lst, date_str)
     return stock_lst
