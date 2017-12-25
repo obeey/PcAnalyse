@@ -91,7 +91,7 @@ def get_predict_data_from_df(stock_frame, start_date=None, end_date=None):
     if stock_len <= SLD_HIST_PATTERN_LEN+1:
         return None
 
-    preliminary_data(stock_frame)
+    sdl.load_preliminary_data(stock_frame)
 
     stock_frame = stock_frame.drop(stock_frame.index[0])
 
@@ -131,7 +131,7 @@ def get_learning_data_from_df(stock_frame, start_date=None, end_date=None):
     if stock_len <= SLD_HIST_PATTERN_LEN+TREND_LEN_REV+1:
         return None, None
 
-    preliminary_data(stock_frame)
+    sdl.load_preliminary_data(stock_frame)
 
     stock_frame = stock_frame.drop(stock_frame.index[0])
 
