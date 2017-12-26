@@ -21,6 +21,7 @@ def get_predict_item(stock_frame, idx):
         learning_data_item.append(sf['amplitude'])
         learning_data_item.append(sf['ma5_pc'])
         learning_data_item.append(sf['v_ma5_pc'])
+        learning_data_item.append(sf['oc_pc'])
 
     return learning_data_item
 
@@ -53,8 +54,11 @@ def get_idx_trend_end_from_st(stock_frame, idx):
 
     return idx_end
 
-def get_idx_back_trend_end_from_st(stock_frame, idx):
-    ma5_pc = stock_frame['ma5_pc'][:idx].sort_index(ascending=False)
+def get_idx_back_trend_end_from_st_ma5_pc(stock_frame, idx):
+    return get_idx_back_trend_end_from_st(stock_frame, idx, 'ma5_pc')
+    
+def get_idx_back_trend_end_from_st(stock_frame, idx, field):
+    ma5_pc = stock_frame[field][:idx].sort_index(ascending=False)
     trend_length = st.get_trend_stage(ma5_pc)
     idx_start = idx - trend_length - 1
 

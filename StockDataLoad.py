@@ -27,9 +27,14 @@ def load_preliminary_data(stock_frame):
     stock_frame['close_pc'] = stock_frame['close'].pct_change()
     stock_frame['volume_pc'] = stock_frame['volume'].pct_change()
     stock_frame['ma5_pc'] = stock_frame['ma5'].pct_change()
+    stock_frame['ma20_pc'] = stock_frame['ma20'].pct_change()
     stock_frame['v_ma5_pc'] = stock_frame['v_ma5'].pct_change()
+    stock_frame['v_ma10_pc'] = stock_frame['v_ma10'].pct_change()
     stock_frame['rise_pc'] = (stock_frame['close'] - stock_open_shift)/stock_open_shift
     stock_frame['amplitude'] = (stock_frame['high'] - stock_frame['low'])/stock_frame['low']
+    price_range = (stock_frame['high'] - stock_frame['low'])
+    price_range = price_range.replace(0, 100000)
+    stock_frame['oc_pc'] = abs(stock_frame['close'] - stock_frame['open'])/price_range
 
 
 def load_lines2df(lines, date_str_start=None, date_str_end=None):
@@ -59,7 +64,7 @@ def load_lines2df(lines, date_str_start=None, date_str_end=None):
     df = df.apply(pd.to_numeric, errors='coerce')
 
     load_price_ma(df, 5)
-    # load_price_ma(df, 20)
+    load_price_ma(df, 20)
     # load_price_ma(df, 60)
 
     # load_price_ema(df, 5)
@@ -67,6 +72,7 @@ def load_lines2df(lines, date_str_start=None, date_str_end=None):
     # load_price_ema(df, 60)
 
     load_volume_ma(df, 5)
+    load_volume_ma(df, 10)
 
     # load_volume_ema(df, 5)
 

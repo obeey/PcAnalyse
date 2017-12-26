@@ -6,7 +6,8 @@ import StockStrategy as ss
 def backtest_sigle_stock(stock_df):
     date_lst = []
     for idx in range(len(stock_df)-1,10,-1):
-        if ss.strategy_crossstar_low(stock_df, idx):
+        # if ss.strategy_crossstar_low(stock_df, idx):
+        if ss.strategy_volume_boost(stock_df, idx):
             date_str = stock_df.index[idx]
             date_lst.append(date_str)
 
@@ -68,7 +69,8 @@ def backtest_stock_show(stock_lst, date_str):
     plt.show()
 
 
-def backtest_all_stock_specify_date(stock_dict, date_str):
+# strategy : ss.strategy_volume_boost
+def backtest_all_stock_specify_date(stock_dict, strategy, date_str):
     stock_lst = []
 
     for c, v in stock_dict.items():
@@ -78,14 +80,15 @@ def backtest_all_stock_specify_date(stock_dict, date_str):
             continue
 
         # print(idx)
-        if ss.strategy_crossstar_low(v, idx):
+        # if ss.strategy_crossstar_low(v, idx):
+        if strategy(v, idx):
             stock_lst.append((c, v, idx))
             print("\t"+c)
 
     # backtest_stock_show(stock_lst, date_str)
     return stock_lst
 
-def backtest_all_stock_range_date(stock_dict, date_str_begin, date_str_end=None):
+def backtest_all_stock_range_date(stock_dict, strategy, date_str_begin, date_str_end=None):
     if date_str_end:
         date_end = datetime.datetime.strptime(date_str_end, "%Y/%m/%d")
     else:
@@ -97,7 +100,7 @@ def backtest_all_stock_range_date(stock_dict, date_str_begin, date_str_end=None)
     while date_cur <= date_end:
         cur_date_str = date_cur.strftime("%Y/%m/%d")
         print(cur_date_str)
-        stock_lst = backtest_all_stock_specify_date(stock_dict, cur_date_str)
-        backtest_stock_show(stock_lst, cur_date_str)
+        stock_lst = backtest_all_stock_specify_date(stock_dict, strategy, cur_date_str)
+        # backtest_stock_show(stock_lst, cur_date_str)
 
         date_cur += oneday
