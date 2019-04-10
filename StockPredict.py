@@ -2,7 +2,7 @@ import datetime
 import numpy as np
 import pandas as pd
 import StockLearningData as sld
-
+import tensorflow       as tf
 
 def get_predict_data(k, date):
 #     k = ts.get_hist_data(c, start=start_date, end=end_date)
@@ -151,4 +151,5 @@ def predict_stock_day(classifier, stock_dict, date_str, code=None):
         df = df[df['code'] == code]
 
     for idx, row in df.iterrows():
-        print("{} {} {} {}".format(row['code'], row['class'], row['probability'], row['pc']))
+        if row['probability'] > 0.999 :
+            print("{} {} {} {}".format(row['code'], row['class'], row['probability'], row['pc']))
