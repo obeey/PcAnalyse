@@ -157,9 +157,9 @@ if __name__ == '__main__':
     classifier_1024_512_256 = tf.estimator.DNNClassifier(feature_columns=feature_columns,
                                                      hidden_units=[1024, 512, 256],
                                                      n_classes=2,
-                                                     model_dir="f:/Project/PcAnalyse/model_hu_1024_512_256_nc_2_trend_20")
+                                                     model_dir="e:/Project/PcAnalyse/model_hu_1024_512_256_nc_2_trend_20")
     
-    stock_dict_predict = sdl.load_path2dict('f:/StockData/real', '2017/11/27')
+    stock_dict_predict = sdl.load_path2dict('d:/export/', '2017/11/27')
     sp.predict_stock_today(classifier_1024_512_256, stock_dict_predict)
 
     date_str = datetime.today().strftime('%Y/%m/%d')

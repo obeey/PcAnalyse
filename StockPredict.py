@@ -53,7 +53,7 @@ def get_predicted_df(classifier, stock_dict, date):
 
     result = [[code_list[idx], int(r["classes"][0]), r['probabilities'][int(r["classes"][0])]] for idx, r in enumerate(predictions)]
 
-    result = [x for x in result if x[2] > 0.8]
+#     result = [x for x in result if x[2] > 0.8]
     
     for x in result:
         k = stock_dict[x[0]]
@@ -86,45 +86,48 @@ def predict_stock_range(classifier, stock_dict, date_start, date_end):
             continue
             
         day_for_predicted = start.strftime('%Y/%m/%d')
-#         print(day_for_predicted)
+        # print(day_for_predicted)
+        predict_stock_day(classifier, stock_dict, day_for_predicted)
         
-        df = get_predicted_df(classifier, stock_dict, day_for_predicted)
         start += one_day
-        if df is None:
-            continue
-            
-#         raise_df = df[df['class'] >= 4]
-#         raise_df = raise_df[raise_df['probability'] > 0.8]
-        
-#         down_df = df[df['class'] <= 2]
-#         down_df = down_df[down_df['probability'] > 0.8]
-#         if 0 == len(raise_df) and 0 == len(down_df):
+#         df = get_predicted_df(classifier, stock_dict, day_for_predicted)
+#         if df is None:
 #             continue
-
-#         df = df[df['probability'] > 0.8]
-        if 0 == len(df):
-            continue
+            
+# #         raise_df = df[df['class'] >= 4]
+# #         raise_df = raise_df[raise_df['probability'] > 0.8]
         
-        class_one = len(df[df['class'] == 1])
-        rate = class_one/len(df)
-        print("\n{} {}\t{}".format(day_for_predicted, 'up' if rate > 0.8 else 'fall', rate))
-#         print();print("{}\t{}".format(day_for_predicted, class_one/len(df)))
-        for idx, row in df.iterrows():
-                print("{} {} {} {}".format(row['code'], row['class'], row['probability'], row['pc']))
+# #         down_df = df[df['class'] <= 2]
+# #         down_df = down_df[down_df['probability'] > 0.8]
+# #         if 0 == len(raise_df) and 0 == len(down_df):
+# #             continue
+
+# #         df = df[df['probability'] > 0.8]
+#         if 0 == len(df):
+#             continue
+        
+#         class_one = len(df[df['class'] == 1])
+#         rate = class_one/len(df)
+#         print("\n{} {}\t{}".format(day_for_predicted, 'up' if rate > 0.8 else 'fall', rate))
+# #         print();print("{}\t{}".format(day_for_predicted, class_one/len(df)))
+#         for idx, row in df.iterrows():
+#             if row['probability'] > 0.999 :
+#                 print("{} {} {} {}".format(row['code'], row['class'], row['probability'], row['pc']))
 
 
 
     
-#         for idx, row in raise_df.iterrows():
-#             print("{} {} {}".format(row['code'], row['class'], row['probability']))
+# #         for idx, row in raise_df.iterrows():
+# #             print("{} {} {}".format(row['code'], row['class'], row['probability']))
             
-#         for idx, row in down_df.iterrows():
-#             print("{} {} {}".format(row['code'], row['class'], row['probability']))
+# #         for idx, row in down_df.iterrows():
+# #             print("{} {} {}".format(row['code'], row['class'], row['probability']))
 
 def predict_stock_today(classifier, stock_dict):
     today = datetime.datetime.today()
     today_str = today.strftime('%Y/%m/%d')
-    predict_stock_range(classifier, stock_dict, today_str, today_str)
+#     predict_stock_range(classifier, stock_dict, today_str, today_str)
+    predict_stock_day(classifier, stock_dict, today_str)
 
 
 def predict_stock_day(classifier, stock_dict, date_str, code=None):
@@ -151,5 +154,6 @@ def predict_stock_day(classifier, stock_dict, date_str, code=None):
         df = df[df['code'] == code]
 
     for idx, row in df.iterrows():
-        if row['probability'] > 0.999 :
-            print("{} {} {} {}".format(row['code'], row['class'], row['probability'], row['pc']))
+        # if row['probability'] > 0.999 and row['class'] == 1 and row['pc'] > 30 :
+        if (row['probability'] > 0.99 or row['pc'] > 20) and row['class'] == 1 :
+            print("{} {} {}\t {}".format(row['code'], row['class'], row['probability'], row['pc']))
