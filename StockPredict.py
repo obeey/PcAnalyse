@@ -26,19 +26,7 @@ def get_predict_data(k, date):
     return k_predict
 
 
-def get_predicted_df(classifier, stock_dict, date):
-    predicted_list = []
-    code_list = []
-
-    for c, v in stock_dict.items():
-        stock_predicted = get_predict_data(v, date)
-        if stock_predicted is not None:
-            predicted_list.append(stock_predicted)
-            code_list.append(c)
-
-    if 0 == len(predicted_list):
-        return None
-    
+def predict_estimator(classifier, predicted_list, code_list):
     predict_input_fn = tf.estimator.inputs.numpy_input_fn(
       x={"x": np.array(predicted_list)},
       num_epochs=1,
@@ -54,7 +42,34 @@ def get_predicted_df(classifier, stock_dict, date):
     result = [[code_list[idx], int(r["classes"][0]), r['probabilities'][int(r["classes"][0])]] for idx, r in enumerate(predictions)]
 
 #     result = [x for x in result if x[2] > 0.8]
+    return result
+
+def predict_keras(model, predicted_list, code_list):
+        predictions = model.predict(np.array(predicted_list))
+        # result = [[code_list[idx], 0, np.where(r == 1)[0][0]] for idx,r in enumerate(predictions) if r[0] != np.nan]
+        result = [[code_list[idx], 0, np.where(r == 1)[0]] for idx,r in enumerate(predictions) if not np.isnan(r).any()]
+        result = [[r[0],r[1],r[2][0] if r[2] != [] else 2] for idx, r in enumerate(result)]
+        # print(predicted_list[0])
+        # print(result)
+
+        return result
+
+def get_predicted_df(classifier, stock_dict, date):
+    predicted_list = []
+    code_list = []
+
+    for c, v in stock_dict.items():
+        stock_predicted = get_predict_data(v, date)
+        if stock_predicted is not None:
+            predicted_list.append(stock_predicted)
+            code_list.append(c)
+
+    if 0 == len(predicted_list):
+        return None
     
+#     result = predict_estimator(classifier, predicted_list, code_list)
+    result = predict_keras(classifier, predicted_list, code_list)
+
     for x in result:
         k = stock_dict[x[0]]
         si = k.index.get_loc(date)
@@ -145,15 +160,18 @@ def predict_stock_day(classifier, stock_dict, date_str, code=None):
     if df is None or 0 == len(df):
         return
 
-
+    """ 
     class_one = len(df[df['class'] == 1])
+#     class_one = len(df[df['class'] == 3 or df['class'] == 4])
     rate = class_one/len(df)
     print("{} {}\t{}".format(day_for_predicted, 'up' if rate > 0.8 else 'fall', rate))
-    
+     """
+    print("{}".format(day_for_predicted))
+
     if code is not None:
         df = df[df['code'] == code]
 
     for idx, row in df.iterrows():
         # if row['probability'] > 0.999 and row['class'] == 1 and row['pc'] > 30 :
-        if (row['probability'] > 0.99 or row['pc'] > 20) and row['class'] == 1 :
-            print("{} {} {}\t {}".format(row['code'], row['class'], row['probability'], row['pc']))
+        if (row['pc'] > 20) or (row['class'] == 3) or (row['class'] == 4):
+            print("  {} {} {}\t {}".format(row['code'], row['class'], row['probability'], row['pc']))
