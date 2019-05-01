@@ -43,7 +43,7 @@ def __stock_trend_start__(cargo):
     if idx > idx_max:
         return 'END', [idx_max, pc]
 
-    if 0 < pc[idx]:
+    if 0 <= pc[idx]:
         return 'RAISE', [idx, pc]
     else:
         return 'DOWN', [idx, pc]

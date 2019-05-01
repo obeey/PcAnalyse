@@ -1,8 +1,9 @@
 import datetime
 import numpy as np
 import pandas as pd
-import StockLearningData as sld
 import tensorflow       as tf
+import StockLearningData as sld
+import StockDataLoad as sdl
 
 def get_predict_data(k, date):
 #     k = ts.get_hist_data(c, start=start_date, end=end_date)
@@ -21,27 +22,39 @@ def get_predict_data(k, date):
 #         print("{} {} not found.".format(code, date))
         return None
     
-    k_predict = sld.get_predict_item(k, idx)
+#     k_predict = sld.get_predict_item(k, idx)
+    k_predict = sld.get_normalize_predict_item(k, idx)
+    if k_predict is None:
+        return None
     
     return k_predict
 
 
 def predict_estimator(classifier, predicted_list, code_list):
+    """
     predict_input_fn = tf.estimator.inputs.numpy_input_fn(
       x={"x": np.array(predicted_list)},
       num_epochs=1,
       shuffle=False)
     
     predictions = list(classifier.predict(input_fn=predict_input_fn))
+
 #     predicted_classes = int(predictions[0]["classes"][0])
 #     predicted_probability = predictions[0]['probabilities'][predicted_classes]
     # print("  {} {} {} {}".format(code, date, predicted_classes, predicted_probability))
     
 #     return predictions, code_list
+    print(predictions)
 
-    result = [[code_list[idx], int(r["classes"][0]), r['probabilities'][int(r["classes"][0])]] for idx, r in enumerate(predictions)]
+    result = [[code_list[idx], int(r["classes"]), r['probabilities'][int(r["classes"])]] for idx, r in enumerate(predictions)]
 
 #     result = [x for x in result if x[2] > 0.8]
+    """
+#     print(predicted_list)
+    predictions = list(classifier.predict_proba(np.array(predicted_list)))
+#     print(predictions)
+
+    result = [[code_list[idx], 0 if r[0] > r[1] else 1, r[0] if r[0] > r[1] else r [1]] for idx, r in enumerate(predictions)]
     return result
 
 def predict_keras(model, predicted_list, code_list):
@@ -54,24 +67,25 @@ def predict_keras(model, predicted_list, code_list):
 
         return result
 
-def get_predicted_df(classifier, stock_dict, date):
+def get_predicted_df(classifier, stock_dict_original, stock_dict_normal, date):
     predicted_list = []
     code_list = []
 
-    for c, v in stock_dict.items():
+    for c, v in stock_dict_normal.items():
         stock_predicted = get_predict_data(v, date)
         if stock_predicted is not None:
             predicted_list.append(stock_predicted)
             code_list.append(c)
 
     if 0 == len(predicted_list):
+        # print("No data for predict.")
         return None
     
-#     result = predict_estimator(classifier, predicted_list, code_list)
-    result = predict_keras(classifier, predicted_list, code_list)
+    result = predict_estimator(classifier, predicted_list, code_list)
+#     result = predict_keras(classifier, predicted_list, code_list)
 
     for x in result:
-        k = stock_dict[x[0]]
+        k = stock_dict_original[x[0]]
         si = k.index.get_loc(date)
         ei = sld.get_idx_trend_end_from_st(k, si)
         x.append(sld.get_learning_range_pc(k, si, ei))    
@@ -94,6 +108,13 @@ def predict_stock_range(classifier, stock_dict, date_start, date_end):
     
     one_day = datetime.timedelta(1)
     
+    stock_dict_origin = {}
+    for c,v in stock_dict.items():
+        stock = v.dropna()
+        if len(stock) >= sld.SLD_HIST_PATTERN_LEN:
+            stock_dict_origin[c] = stock
+
+    stock_dict_normal = sdl.load_normalization_from_dict(stock_dict_origin)
     while start <= end:
         weekday = start.isoweekday()
         if 6 == weekday or 7 == weekday:
@@ -102,7 +123,7 @@ def predict_stock_range(classifier, stock_dict, date_start, date_end):
             
         day_for_predicted = start.strftime('%Y/%m/%d')
         # print(day_for_predicted)
-        predict_stock_day(classifier, stock_dict, day_for_predicted)
+        predict_stock_day(classifier, stock_dict_origin, stock_dict_normal, day_for_predicted)
         
         start += one_day
 #         df = get_predicted_df(classifier, stock_dict, day_for_predicted)
@@ -142,10 +163,10 @@ def predict_stock_today(classifier, stock_dict):
     today = datetime.datetime.today()
     today_str = today.strftime('%Y/%m/%d')
 #     predict_stock_range(classifier, stock_dict, today_str, today_str)
-    predict_stock_day(classifier, stock_dict, today_str)
+    predict_stock_day(classifier, stock_dict, sdl.load_normalization_from_dict(stock_dict), today_str)
 
 
-def predict_stock_day(classifier, stock_dict, date_str, code=None):
+def predict_stock_day(classifier, stock_dict_original, stock_dict_normal, date_str, code=None):
     if date_str is None:
         print("Please provide the date range.")
         return
@@ -156,7 +177,7 @@ def predict_stock_day(classifier, stock_dict, date_str, code=None):
     day_for_predicted = date_str
 #         print(day_for_predicted)
 
-    df = get_predicted_df(classifier, stock_dict, day_for_predicted)
+    df = get_predicted_df(classifier, stock_dict_original, stock_dict_normal, day_for_predicted)
     if df is None or 0 == len(df):
         return
 
@@ -164,14 +185,15 @@ def predict_stock_day(classifier, stock_dict, date_str, code=None):
     class_one = len(df[df['class'] == 1])
 #     class_one = len(df[df['class'] == 3 or df['class'] == 4])
     rate = class_one/len(df)
-    print("{} {}\t{}".format(day_for_predicted, 'up' if rate > 0.8 else 'fall', rate))
-     """
-    print("{}".format(day_for_predicted))
+    print("{}-{}-{}".format(day_for_predicted, 'U' if rate > 0.8 else 'D', rate))
+    """
+    print(day_for_predicted)
 
     if code is not None:
         df = df[df['code'] == code]
 
     for idx, row in df.iterrows():
         # if row['probability'] > 0.999 and row['class'] == 1 and row['pc'] > 30 :
-        if (row['pc'] > 20) or (row['class'] == 3) or (row['class'] == 4):
+        # if  (row['class'] == 1) and (row['probability'] > 0.6):
+        if  (row['class'] == 1) :
             print("  {} {} {}\t {}".format(row['code'], row['class'], row['probability'], row['pc']))

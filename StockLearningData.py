@@ -8,6 +8,8 @@ import StockDataLoad as sdl
 SLD_HIST_PATTERN_LEN    = 30
 TREND_LEN_REV = 10
 
+# TREND_FIELD = 'ma' + str(sdl.SDL_TREND_SMALL)
+TREND_FIELD = 'ma5'
 
 def get_predict_item(stock_frame, idx):
     learning_data_item = []
@@ -26,23 +28,44 @@ def get_predict_item(stock_frame, idx):
     return learning_data_item
 
 
+"""
+stock_frame is normalized.
+return numpy.array
+"""
+def get_normalize_predict_item(stock_frame, idx):
+    # 把.reshape去掉就是CNN的data
+    result = stock_frame[idx - SLD_HIST_PATTERN_LEN:idx].values
+    if result is None or len(result) < SLD_HIST_PATTERN_LEN:
+        return None
+
+    # delete columes for "open	high	low	close	volume	transation	"
+    result  = np.delete(result, [0,1,2,3,4,5], 1)
+    dim = result.shape[1]
+    return result.reshape((1, SLD_HIST_PATTERN_LEN*dim))
+
 def get_learning_range_pc(stock_frame, idx_start, idx_end):
-    start = stock_frame['ma5'][idx_start]
-    end = stock_frame['ma5'][idx_end]
+    # start = stock_frame[TREND_FIELD][idx_start]
+    start = stock_frame['close'][idx_start]
+    if 0 == start:
+        start = 0.000000001
+    # end = stock_frame[TREND_FIELD][idx_end]
+    end = stock_frame['close'][idx_end]
 
     pc = (end - start)*100/start
     return pc
 
-
+"""
+stock_frame is not normalized.
+"""
 def get_learning_category(stock_frame, idx_start, idx_end):
     pc = get_learning_range_pc(stock_frame, idx_start, idx_end)
     # category = st.get_trend_category(pc)
     # return category
     category = 2
-    """     
+
     if pc <= -20.0:
         category = 0
-    if pc >= 20.0:
+    if pc >= 30.0:
         category = 1
     """
     if pc < -50.0:
@@ -55,19 +78,22 @@ def get_learning_category(stock_frame, idx_start, idx_end):
         category    = 1
     else:
         category    = 2
+    """     
 
-    # print("{} {} : {} {}".format(stock_frame.index[idx_start], stock_frame.index[idx_end], pc, category))
+    # if 1 == category:
+    #     print("{} {} : {} {}".format(stock_frame.index[idx_start], stock_frame.index[idx_end], pc, category))
+
     return category
 
 
 def get_idx_trend_end_from_st(stock_frame, idx):
-    trend_length = st.get_trend_stage(stock_frame['ma5_pc'][idx:])
+    trend_length = st.get_trend_stage(stock_frame[TREND_FIELD+'_pc'][idx:])
     idx_end = idx + trend_length
 
     return idx_end
 
 def get_idx_back_trend_end_from_st_ma5_pc(stock_frame, idx):
-    return get_idx_back_trend_end_from_st(stock_frame, idx, 'ma5_pc')
+    return get_idx_back_trend_end_from_st(stock_frame, idx, TREND_FIELD+'_pc')
     
 def get_idx_back_trend_end_from_st(stock_frame, idx, field):
     ma5_pc = stock_frame[field][:idx].sort_index(ascending=False)
@@ -77,14 +103,39 @@ def get_idx_back_trend_end_from_st(stock_frame, idx, field):
     return idx_start
 
 
+def get_normalize_learning_item_from_idx(stock_frame_org, stock_frame_normal, idx_start, idx_end):
+    # learning_target_item = []
+
+    category = get_learning_category(stock_frame_org, idx_start, idx_end)
+    """ 
+    """
+    if 0 != category and 1 != category:
+        return None, None
+
+    learning_data_item = get_normalize_predict_item(stock_frame_normal, idx_start)
+    """
+    if len(learning_data_item) < SLD_HIST_PATTERN_LEN:
+        print("Length short.")
+        return None, None
+    """
+
+    if learning_data_item is None or np.any(np.isnan(learning_data_item)) or np.any(np.isinf(learning_data_item)):
+        return None, None
+
+    # print("{} {} {}".format(idx_delta, pc, category))
+    # learning_target_item.append(category)
+
+    return learning_data_item, category
+
 def get_learning_item_from_idx(stock_frame, idx_start, idx_end):
     # learning_target_item = []
 
     category = get_learning_category(stock_frame, idx_start, idx_end)
     """ 
+    """
     if 0 != category and 1 != category:
         return None, None
-    """
+
     learning_data_item = get_predict_item(stock_frame, idx_start)
     if np.any(np.isnan(learning_data_item)) or np.any(np.isinf(learning_data_item)):
         return None, None
@@ -96,7 +147,7 @@ def get_learning_item_from_idx(stock_frame, idx_start, idx_end):
 
 
 def get_learning_item(stock_frame, idx):
-    idx_end = get_idx_trend_end_from_st(stock_frame, idx)
+    idx_end = get_idx_trend_end_from_st(stock_frame, idx) - 1
 
     return get_learning_item_from_idx(stock_frame, idx, idx_end)
 
@@ -150,9 +201,10 @@ def get_learning_data_from_df(stock_frame, start_date=None, end_date=None):
         return None, None
 
     # preliminary_data(stock_frame)
-    sdl.load_preliminary_data(stock_frame)
+    # sdl.load_preliminary_data(stock_frame)
 
-    stock_frame = stock_frame.drop(stock_frame.index[0])
+    # stock_frame = stock_frame.drop(stock_frame.index[0])
+    stock_frame = stock_frame.replace([np.inf, -np.inf], np.nan).dropna()
 
     if start_date is not None or end_date is not None:
         df = reshape_df(stock_frame, start_date, end_date)
@@ -170,16 +222,32 @@ def get_learning_data_from_df(stock_frame, start_date=None, end_date=None):
     #         trend_end = get_idx_end_from_st(df, i)
     i = SLD_HIST_PATTERN_LEN - 1
     # print("{} {}".format(df.index[i], df.index[stock_len-1]))
+    df_normal   = sdl.load_normalization(df)
+    if df_normal is None:
+        return None, None
+
     while i < stock_len - 1:
-        # print(df.index[i])
-        trend_end = get_idx_trend_end_from_st(df, i)
-        data_item, target_item = get_learning_item_from_idx(df, i, trend_end)
-        i = trend_end
+        trend_end = get_idx_trend_end_from_st(df, i) - 1
+        # data_item, target_item = get_learning_item_from_idx(df, i, trend_end)
+        data_item, target_item = get_normalize_learning_item_from_idx(df, df_normal, i, trend_end)
         if data_item is None or target_item is None:
+            i = trend_end + 1
             continue
 
+        # print("  {}-{}\t{}".format(df.index[i], df.index[trend_end], target_item))
         data.append(data_item)
         target.append(target_item)
+
+        for j in range(i + 1, trend_end):
+            data_item, target_item = get_normalize_learning_item_from_idx(df, df_normal, j, trend_end)
+            if data_item is None or target_item is None:
+                break
+
+            # print("  {}-{}\t{}".format(df.index[j], df.index[trend_end], target_item))
+            data.append(data_item)
+            target.append(target_item)
+
+        i = trend_end + 1
 
     return data[:-TREND_LEN_REV], target[:-TREND_LEN_REV]
 
@@ -301,7 +369,7 @@ def get_learning_data_from_dict_date(stock_dict, start_date, end_date=None):
         data.extend(d[1:-10])
         target.extend(t[1:-10])
 
-    return data, target
+    return np.array(data), np.array(target)
 
 
 def get_learning_data_from_path(path, start_date=None, end_date=None):
@@ -338,7 +406,7 @@ def get_learning_data_from_path(path, start_date=None, end_date=None):
         if SLD_HIST_PATTERN_LEN + 15 >= len(df):
             continue
 
-        print(f)
+        # print(f)
 
         d, t = get_learning_data_from_df(df)
         if d is None or t is None:
@@ -350,4 +418,7 @@ def get_learning_data_from_path(path, start_date=None, end_date=None):
         data.extend(d)
         target.extend(t)
 
-    return data, target
+    return np.array(data), np.array(target)
+
+if __name__ == '__main__':
+    data, target = get_learning_data_from_path('d:/export', end_date='2017/12/30')
