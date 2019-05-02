@@ -4,6 +4,7 @@ import pandas as pd
 import tensorflow       as tf
 import StockLearningData as sld
 import StockDataLoad as sdl
+import StockKlineSharp as sks
 
 def get_predict_data(k, date):
 #     k = ts.get_hist_data(c, start=start_date, end=end_date)
@@ -197,3 +198,126 @@ def predict_stock_day(classifier, stock_dict_original, stock_dict_normal, date_s
         # if  (row['class'] == 1) and (row['probability'] > 0.6):
         if  (row['class'] == 1) :
             print("  {} {} {}\t {}".format(row['code'], row['class'], row['probability'], row['pc']))
+
+def predict_result_show_print(stock_dict, date, codes):
+    if len(codes) <= 0:
+        return
+    
+    print(date)
+    for c in codes:
+        print("  "+c)
+
+import matplotlib.pyplot as plt
+# plt.xticks(rotation=90)
+
+def predict_result_show_graph(stock_dict, date, codes):
+    COLUMNS = 2
+    subs = len(codes)
+    rows = (subs+COLUMNS-1)//COLUMNS
+    
+    fig, axs = plt.subplots(rows, COLUMNS, figsize=(15, 10), squeeze=False)
+    
+    for i in range(subs):
+        c = codes[i]
+        stock = stock_dict[c][date + datetime.timedelta(days=1):date + datetime.timedelta(days=21)]['close']
+        ax = axs[i//COLUMNS][i % COLUMNS]
+        ax.set_title(c)
+        ax.plot(stock)
+        for tick in ax.get_xticklabels():
+            tick.set_rotation(45)
+    fig.suptitle(date)
+#     fig.show()
+    
+def __predict_day__(stock_dict, actions, date):
+    selects = []
+    idx = 0
+    
+    for code,stock in stock_dict.items():
+        if len(stock) == 0:
+            continue
+
+        try:
+            idx = stock.index.get_loc(date)
+        except KeyError:
+            continue
+
+        for action in actions:
+            result = action(stock, idx)
+            if result:
+                selects.append(code)
+                break
+                
+    return selects
+                    
+def predict_day(stock_dict, actions, date_str):
+    ds = date_str.split('/')
+    date = datetime.date(int(ds[0]), int(ds[1]), int(ds[2]))
+    
+    return __predict_day__(stock_dict, actions, date)
+
+def predict_range(stock_dict, actions, start_str=None, end_str=None, show_action=predict_result_show_print):
+#     start_date
+#     end_date
+    if start_str is None:
+        start_str = '1997/04/30'
+#     start = datetime.strptime(start_str, '%Y/%m/%d')
+    if end_str is None:
+        end_date = datetime.date.today()
+    else:
+        ds = end_str.split('/')
+        end_date = datetime.date(int(ds[0]), int(ds[1]), int(ds[2]))
+        
+    ds = start_str.split('/')
+    start_date = datetime.date(int(ds[0]), int(ds[1]), int(ds[2]))
+        
+    dates = pd.bdate_range(start_date, end_date).tolist()
+    for d in dates:
+        selects = __predict_day__(stock_dict, actions, d)
+        if len(selects) > 0:
+            show_action(stock_dict, d, selects)
+                
+def predict_kline_sharp_action(stock_df, idx):
+    r = stock_df.iloc[idx]
+    
+    o = r['open']
+    c = r['close']
+    h = r['high']
+    l = r['low']
+    
+    return True if sks.kline_sharp_crossStar(o, c, h, l) and r['ma5_pc'] < -0.02 and r['v_ma5_pc'] < -0.02 else False
+
+def predict_continuous_fall_action(stock_df, idx):
+    CONTINUOUS_LEN = 5
+    AMPLITUDE = 0.3
+    
+    if idx < CONTINUOUS_LEN+1:
+        return False
+    
+    p = stock_df.iloc[idx-CONTINUOUS_LEN]
+    r = stock_df.iloc[idx]
+    
+    o = p['close']
+    c = r['close']
+    if (o - c)/o < AMPLITUDE:
+        return False
+    
+#     p = stock_df.iloc[idx-1]
+    r = stock_df.iloc[idx]
+    
+    o = r['open']
+    c = r['close']
+    
+    if c <= o:
+        return False
+    
+    for i in range(idx - CONTINUOUS_LEN, idx):
+        p = stock_df.iloc[i-1]
+        r = stock_df.iloc[i]
+    
+        o = p['close']
+        c = r['close']
+        
+        if c > o:
+            return False
+        
+    return True

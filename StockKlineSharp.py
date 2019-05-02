@@ -5,26 +5,26 @@ import pandas as pd
 
 def kline_sharp_crossStar(open, close, high, low):
     OCPC_THRELDHOLD = 0.001
-    OLPC_THRELDHOLD = 0.025
-    AR_THRELDHOLD = 4
+#     OLPC_THRELDHOLD = 0.03
+    HLPC_THRELDHOLD = 0.05
+    AR_THRELDHOLD = 6
 
     if 0 == open:
         return False
 
     ocpc = abs(close - open)/open
-    olpc = abs(open - low )/open
+#     olpc = abs(open - low )/open
+    hlpc = (high - low)/open
 
     # print("\t{}\t{}".format(ocpc, olpc))
 
-    if ocpc < 0.01:
-        if olpc > OLPC_THRELDHOLD:
-            return True
-        else:
-            return False
+    if ocpc < 0.001:
+        return True if hlpc > HLPC_THRELDHOLD else False
+           
+#     amplitude_rate = hlpc/ocpc
 
-    amplitude_rate = olpc/ocpc
-
-    if ocpc < OCPC_THRELDHOLD and amplitude_rate > AR_THRELDHOLD:
+#     if ocpc < OCPC_THRELDHOLD and amplitude_rate > AR_THRELDHOLD:
+    if ocpc < OCPC_THRELDHOLD and hlpc > HLPC_THRELDHOLD:
         return True
 
     return False
@@ -89,10 +89,12 @@ def __kline_sharp_day__(stock_dict, date):
         h = v['high'].values[0]
         l = v['low'].values[0]
 
-        if kline_sharp_crossStar(o, c, h, l) and v['ma5_pc'].values[0] < -0.02 and v['v_ma5_pc'].values[0] < 0:
+        if kline_sharp_crossStar(o, c, h, l) and v['ma5_pc'].values[0] < -0.02 and v['v_ma5_pc'].values[0] < -0.02:
             stocks.append(code)
 #             print("  " + code)
     return stocks
+
+
             
 def kline_sharp_date(path, date):
     stock_dict = sdl.load_path2dict_date(path, date)
