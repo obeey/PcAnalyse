@@ -273,3 +273,20 @@ def load_normalization(df):
     df = (df+colume_max)/(colume_max*2)
 
     return df
+
+def load_serialize(stock_dict, path):
+    for code,stock in stock_dict.items():
+        if len(stock) == 0:
+            continue
+
+        stock.to_pickle(path + code, 'zip', 4)
+        
+def load_deserialize(path):
+    stock_dict = {}
+    
+    for f in os.listdir(path):
+        full_path   = os.path.join(path,f)
+        df = pd.read_pickle(full_path, 'zip')
+        stock_dict[f] = df
+        
+    return stock_dict

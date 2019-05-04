@@ -225,10 +225,12 @@ def predict_result_show_graph(stock_dict, date, codes):
         ax.plot(stock)
         for tick in ax.get_xticklabels():
             tick.set_rotation(45)
-    fig.suptitle(date)
+    datae_str = date.strftime('%Y/%m/%d')
+    fig.suptitle(datae_str)
+    fig.canvas.set_window_title(datae_str)
 #     fig.show()
     
-def __predict_day__(stock_dict, actions, date):
+def __predict_day__(stock_dict, action, date):
     selects = []
     idx = 0
     
@@ -241,11 +243,9 @@ def __predict_day__(stock_dict, actions, date):
         except KeyError:
             continue
 
-        for action in actions:
-            result = action(stock, idx)
-            if result:
-                selects.append(code)
-                break
+        result = action(stock, idx)
+        if result:
+            selects.append(code)
                 
     return selects
                     
@@ -255,7 +255,7 @@ def predict_day(stock_dict, actions, date_str):
     
     return __predict_day__(stock_dict, actions, date)
 
-def predict_range(stock_dict, actions, start_str=None, end_str=None, show_action=predict_result_show_print):
+def predict_range(stock_dict, action, start_str=None, end_str=None, show_action=predict_result_show_print):
 #     start_date
 #     end_date
     if start_str is None:
@@ -272,7 +272,7 @@ def predict_range(stock_dict, actions, start_str=None, end_str=None, show_action
         
     dates = pd.bdate_range(start_date, end_date).tolist()
     for d in dates:
-        selects = __predict_day__(stock_dict, actions, d)
+        selects = __predict_day__(stock_dict, action, d)
         if len(selects) > 0:
             show_action(stock_dict, d, selects)
                 
@@ -284,15 +284,29 @@ def predict_kline_sharp_action(stock_df, idx):
     h = r['high']
     l = r['low']
     
-    return True if sks.kline_sharp_crossStar(o, c, h, l) and r['ma5_pc'] < -0.02 and r['v_ma5_pc'] < -0.02 else False
+#     return True if sks.kline_sharp_crossStar(o, c, h, l) and r['ma5_pc'] < -0.02 and r['v_ma5_pc'] < -0.02 else False
+    return sks.kline_sharp_crossStar(o, c, h, l)
 
-def predict_continuous_fall_action(stock_df, idx):
-    CONTINUOUS_LEN = 5
+def predict_ban_action(stock_df, idx):
+    CONTINUOUS_LEN = 15
+    if idx < CONTINUOUS_LEN+1:
+        return False
+    
+    for i in range(idx - CONTINUOUS_LEN, idx):
+        r = stock_df.iloc[i]
+    
+        if r['open'] == r['close'] == r['high'] == r['low']:
+            return False
+        
+    return True
+
+def predict_continuous_price_fall_action(stock_df, idx):
+    CONTINUOUS_LEN = 4
     AMPLITUDE = 0.3
     
     if idx < CONTINUOUS_LEN+1:
         return False
-    
+    '''
     p = stock_df.iloc[idx-CONTINUOUS_LEN]
     r = stock_df.iloc[idx]
     
@@ -300,6 +314,7 @@ def predict_continuous_fall_action(stock_df, idx):
     c = r['close']
     if (o - c)/o < AMPLITUDE:
         return False
+    
     
 #     p = stock_df.iloc[idx-1]
     r = stock_df.iloc[idx]
@@ -309,7 +324,7 @@ def predict_continuous_fall_action(stock_df, idx):
     
     if c <= o:
         return False
-    
+    '''
     for i in range(idx - CONTINUOUS_LEN, idx):
         p = stock_df.iloc[i-1]
         r = stock_df.iloc[i]
@@ -320,4 +335,43 @@ def predict_continuous_fall_action(stock_df, idx):
         if c > o:
             return False
         
+    return True
+
+def predict_continuous_volume_fall_action(stock_df, idx):
+    CONTINUOUS_LEN = 5
+    AMPLITUDE = 0.1
+    
+    if idx < CONTINUOUS_LEN+1:
+        return False
+   
+    p = stock_df.iloc[idx-CONTINUOUS_LEN]
+    r = stock_df.iloc[idx]
+    
+    o = p['close']
+    c = r['close']
+#     a = (o - c)/o
+    if (o - c)/o < 0.1:
+        return False
+    
+    p = stock_df.iloc[idx-1]
+    r = stock_df.iloc[idx]
+    
+    o = p['volume']
+    c = r['volume']
+    
+    if c < o:
+        return False
+    
+    
+    for i in range(idx - CONTINUOUS_LEN, idx):
+        p = stock_df.iloc[i-1]
+        r = stock_df.iloc[i]
+    
+        o = p['volume']
+        c = r['volume']
+        amplitude = (o - c)/o
+        if amplitude < AMPLITUDE:
+            return False
+        
+#     print(a)
     return True
