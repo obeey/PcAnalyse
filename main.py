@@ -8,6 +8,7 @@ import numpy as np
 import os
 import sys
 
+# Load data from path
 def load_data(path):
     if os.path.isdir(path) == False:
         print("Not dir")
